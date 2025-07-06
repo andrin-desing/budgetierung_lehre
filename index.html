@@ -12,36 +12,13 @@
         body {
             font-family: 'Inter', sans-serif;
         }
-        /* Dark Mode styles */
-        html.dark .bg-white { background-color: #2D3748; }
-        html.dark .text-gray-900 { color: #E2E8F0; }
-        html.dark .text-gray-800 { color: #E2E8F0; }
-        html.dark .text-gray-700 { color: #CBD5E0; }
-        html.dark .text-gray-600 { color: #A0AEC0; }
-        html.dark .text-gray-500 { color: #718096; }
-        html.dark .border-\[\#8B9D77\] { border-color: #37745B; } /* mediumGreen for dark mode border */
-        html.dark .bg-\[\#E7EAEF\] { background-color: #2D3748; } /* lightGrayBlue for dark mode card background */
-        html.dark .bg-\[\#EDC5AB\] { background-color: #37745B; } /* lightBeige for dark mode income/list items */
-        html.dark .bg-\[\#217074\] { background-color: #37745B; } /* darkBlueGreen for dark mode header/buttons */
-        html.dark .bg-\[\#37745B\] { background-color: #217074; } /* darkGreen for dark mode active buttons/income summary */
-        html.dark .hover\:bg-\[\#8B9D77\]:hover { background-color: #8B9D77; } /* mediumGreen hover for dark mode */
-        html.dark .hover\:bg-\[\#37745B\]:hover { background-color: #217074; } /* darkGreen hover for dark mode */
-        html.dark .text-\[\#217074\] { color: #E2E8F0; } /* darkBlueGreen text for dark mode */
-        html.dark .text-\[\#37745B\] { color: #E2E8F0; } /* darkGreen text for dark mode */
-        html.dark .bg-red-100 { background-color: #FED7D7; } /* Red error background */
-        html.dark .text-red-700 { color: #FC8181; } /* Red error text */
-        html.dark .bg-yellow-100 { background-color: #FEFCBF; } /* Yellow warning background */
-        html.dark .text-yellow-600 { color: #F6E05E; } /* Yellow warning text */
-        html.dark .bg-gray-700 { background-color: #4A5568; } /* Input background in dark mode */
-        html.dark .border-gray-600 { border-color: #4A5568; } /* Input border in dark mode */
-        html.dark .focus\:ring-gray-500:focus { --tw-ring-color: #6B7280; } /* Input focus ring in dark mode */
-        html.dark .text-white { color: #E2E8F0; } /* Ensure white text remains visible */
+        /* Removed Dark Mode specific styles */
     </style>
 </head>
 <body class="min-h-screen bg-[#E7EAEF] text-gray-900 font-inter">
 
     <!-- Header -->
-    <header class="p-4 shadow-md rounded-b-lg bg-[#217074] text-white">
+    <header class="p-4 shadow-md rounded-b-lg bg-[#177E89] text-white">
         <div class="container mx-auto flex flex-col sm:flex-row justify-between items-center">
             <h1 class="text-3xl font-bold mb-2 sm:mb-0">Lehrlings-Budget</h1>
             <nav class="w-full sm:w-auto">
@@ -50,7 +27,8 @@
                     <li><button id="categories-btn" class="px-3 py-1.5 sm:px-4 sm:py-2 rounded-md text-sm sm:text-base transition-colors duration-200">Kategorien</button></li>
                     <li><button id="settings-btn" class="px-3 py-1.5 sm:px-4 sm:py-2 rounded-md text-sm sm:text-base transition-colors duration-200">Einstellungen</button></li>
                     <li><button id="limits-btn" class="px-3 py-1.5 sm:px-4 sm:py-2 rounded-md text-sm sm:text-base transition-colors duration-200">Budgetgrenzen</button></li>
-                    <li><button id="invoice-upload-btn" class="px-3 py-1.5 sm:px-4 sm:py-2 rounded-md text-sm sm:text-base transition-colors duration-200">Rechnungen hochladen</button></li>
+                    <li><button id="savings-goals-btn" class="px-3 py-1.5 sm:px-4 sm:py-2 rounded-md text-sm sm:text-base transition-colors duration-200">Sparziele</button></li>
+                    <li><button id="invoice-analysis-btn" class="px-3 py-1.5 sm:px-4 sm:py-2 rounded-md text-sm sm:text-base transition-colors duration-200">Rechnungen</button></li>
                     <li><button id="logout-btn" class="px-3 py-1.5 sm:px-4 sm:py-2 rounded-md text-sm sm:text-base bg-red-500 hover:bg-red-600 transition-colors duration-200">Abmelden</button></li>
                 </ul>
             </nav>
@@ -62,27 +40,32 @@
         <!-- Inhalte werden hier dynamisch geladen -->
     </main>
 
-    <!-- Dark Mode Button -->
-    <button id="dark-mode-toggle" class="fixed bottom-4 right-4 p-3 rounded-full shadow-lg transition-colors duration-300 bg-[#217074] text-white" aria-label="Toggle Dark Mode">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-        </svg>
-    </button>
+    <!-- Reward Modal -->
+    <div id="reward-modal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50 hidden">
+        <div class="bg-white p-8 rounded-xl shadow-2xl text-center max-w-sm w-full">
+            <h3 class="text-3xl font-bold text-[#08605F] mb-4">Ziel erreicht! 🎉</h3>
+            <p id="reward-message" class="text-lg text-gray-800 mb-6">Herzlichen Glückwunsch! Du hast dein Sparziel erfolgreich erreicht!</p>
+            <button id="close-reward-modal" class="bg-[#177E89] hover:bg-[#08605F] text-white font-bold py-2 px-5 rounded-lg transition-all duration-200">Super!</button>
+        </div>
+    </div>
 
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, doc, addDoc, deleteDoc, onSnapshot, query, where, orderBy, serverTimestamp, getDocs, writeBatch, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, setPersistence, browserLocalPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, addDoc, deleteDoc, onSnapshot, query, where, orderBy, serverTimestamp, getDocs, writeBatch, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        // getAnalytics is not used in this app's logic, so it's removed.
+        // import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js";
+
 
         // Deine Firebase Konfiguration
         const firebaseConfig = {
-          apiKey: "AIzaSyBX_aHaadvBz08hcVUz-_qLVP0a16N3R3s",
+          apiKey: "AIzaSyBX_aHaadvBz08hcVUz-_qLVP0a16N3R3s", // API Key aktualisiert basierend auf deiner Angabe
           authDomain: "budgettierung-lehre.firebaseapp.com",
           projectId: "budgettierung-lehre",
           storageBucket: "budgettierung-lehre.firebasestorage.app",
           messagingSenderId: "993511841399",
-          appId: "1:993511841399:web:811a030fa95465af20b072",
+          appId: "1:993511841399:web:811a030fa95465af20b072", // App ID aktualisiert basierend auf deiner Angabe
           measurementId: "G-M2MV5B2SDT"
         };
 
@@ -96,18 +79,42 @@
         let currentUserId = null;
         let isAuthReady = false;
         let currentCategories = []; // Globaler Cache für Kategorien
-        let darkMode = false; // Globaler State für Dark Mode
 
         // Farbpalette
         const colors = {
-            darkBlueGreen: '#217074',
-            darkGreen: '#37745B',
-            mediumGreen: '#8B9D77',
-            lightGrayBlue: '#E7EAEF',
-            lightBeige: '#EDC5AB',
-            darkBackground: '#1A202C',
-            darkCardBackground: '#2D3748',
-            darkText: '#E2E8F0',
+            caribbeanCurrent: '#08605F',
+            teal: '#177E89',
+            hookersGreen: '#598381',
+            mossGreen: '#8E936D',
+            olivine: '#A2AD59',
+
+            // Definierte Tailwind-Klassennamen für dynamische Verwendung
+            tailwind: {
+                bgCaribbeanCurrent: 'bg-[#08605F]',
+                bgTeal: 'bg-[#177E89]',
+                bgHookersGreen: 'bg-[#598381]',
+                bgMossGreen: 'bg-[#8E936D]',
+                bgOlivine: 'bg-[#A2AD59]',
+                textCaribbeanCurrent: 'text-[#08605F]',
+                textTeal: 'text-[#177E89]',
+                textHookersGreen: 'text-[#598381]',
+                textMossGreen: 'text-[#8E936D]',
+                textOlivine: 'text-[#A2AD59]',
+                borderMossGreen: 'border-[#8E936D]',
+                focusRingMossGreen: 'focus:ring-[#8E936D]',
+                hoverBgCaribbeanCurrent: 'hover:bg-[#08605F]',
+                hoverBgTeal: 'hover:bg-[#177E89]',
+                // Standardfarben für Fehler/Warnungen beibehalten
+                bgRed500: 'bg-red-500',
+                hoverBgRed600: 'hover:bg-red-600',
+                bgRed600: 'bg-red-600',
+                hoverBgRed700: 'hover:bg-red-700',
+                bgRed800: 'bg-red-800',
+                bgYellow100: 'bg-yellow-100',
+                textRed700: 'text-red-700',
+                textYellow600: 'text-yellow-600',
+                textRed800: 'text-red-800',
+            }
         };
 
         // DOM-Elemente
@@ -116,80 +123,76 @@
         const categoriesBtn = document.getElementById('categories-btn');
         const settingsBtn = document.getElementById('settings-btn');
         const limitsBtn = document.getElementById('limits-btn');
-        const invoiceUploadBtn = document.getElementById('invoice-upload-btn');
+        const savingsGoalsBtn = document.getElementById('savings-goals-btn');
+        const invoiceAnalysisBtn = document.getElementById('invoice-analysis-btn'); // New button
         const logoutBtn = document.getElementById('logout-btn');
-        const darkModeToggle = document.getElementById('dark-mode-toggle');
-        const headerNavButtons = [dashboardBtn, categoriesBtn, settingsBtn, limitsBtn, invoiceUploadBtn, logoutBtn];
+        const headerNavButtons = [dashboardBtn, categoriesBtn, settingsBtn, limitsBtn, savingsGoalsBtn, invoiceAnalysisBtn, logoutBtn]; // Updated
+
+        const rewardModal = document.getElementById('reward-modal');
+        const rewardMessage = document.getElementById('reward-message');
+        const closeRewardModalBtn = document.getElementById('close-reward-modal');
 
         // --- Hilfsfunktionen für UI-Updates ---
-        function applyDarkModeStyles() {
-            if (darkMode) {
-                document.documentElement.classList.add('dark');
-                darkModeToggle.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h1M4 12H3m15.325 5.325l-.707.707M6.364 6.364l-.707-.707m12.728 0l-.707-.707M6.364 17.636l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                                            </svg>`;
-                darkModeToggle.classList.remove(`bg-[${colors.darkBlueGreen}]`, 'text-white', `hover:bg-[${colors.darkGreen}]`);
-                darkModeToggle.classList.add(`bg-[${colors.darkGreen}]`, `text-[${colors.darkText}]`, `hover:bg-[${colors.darkBlueGreen}]`);
-            } else {
-                document.documentElement.classList.remove('dark');
-                darkModeToggle.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                                            </svg>`;
-                darkModeToggle.classList.remove(`bg-[${colors.darkGreen}]`, `text-[${colors.darkText}]`, `hover:bg-[${colors.darkBlueGreen}]`);
-                darkModeToggle.classList.add(`bg-[${colors.darkBlueGreen}]`, 'text-white', `hover:bg-[${colors.darkGreen}]`);
-            }
-        }
-
         function updateHeaderNavButtons(activePageId) {
+            const baseBtnClasses = "px-3 py-1.5 sm:px-4 sm:py-2 rounded-md text-sm sm:text-base transition-colors duration-200";
+
             headerNavButtons.forEach(button => {
+                let currentBtnClasses = baseBtnClasses;
+
                 if (button.id.startsWith(activePageId)) {
-                    button.classList.add(darkMode ? `bg-[${colors.darkGreen}]` : `bg-[${colors.darkGreen}]`);
-                    button.classList.remove(darkMode ? `hover:bg-[${colors.mediumGreen}]` : `hover:bg-[${colors.mediumGreen}]`);
+                    currentBtnClasses += ` ${colors.tailwind.bgCaribbeanCurrent} text-white`; // Active button color
                 } else {
-                    button.classList.remove(darkMode ? `bg-[${colors.darkGreen}]` : `bg-[${colors.darkGreen}]`);
-                    button.classList.add(darkMode ? `hover:bg-[${colors.mediumGreen}]` : `hover:bg-[${colors.mediumGreen}]`);
+                    currentBtnClasses += ` hover:bg-[#08605F] text-white`; // Hover color for inactive buttons
                 }
+
+                if (button.id === 'logout-btn') {
+                    currentBtnClasses += ` ${colors.tailwind.bgRed500} ${colors.tailwind.hoverBgRed600}`;
+                }
+
+                button.className = currentBtnClasses;
             });
         }
 
         function getCardClasses() {
-            return `p-6 sm:p-8 rounded-xl shadow-lg border ${darkMode ? `bg-[${colors.darkCardBackground}] border-[${colors.darkGreen}] text-[${colors.darkText}]` : `bg-white border-[${colors.mediumGreen}] text-gray-900`}`;
+            return `p-6 sm:p-8 rounded-xl shadow-lg border bg-white ${colors.tailwind.borderMossGreen} text-gray-900`;
         }
 
         function getInnerCardClasses() {
-            return `mb-8 p-4 sm:p-6 rounded-lg border ${darkMode ? `bg-[${colors.darkCardBackground}] border-[${colors.darkGreen}]` : `bg-[${colors.lightGrayBlue}] border-[${colors.mediumGreen}]`}`;
+            return `mb-8 p-4 sm:p-6 rounded-lg border ${colors.tailwind.bgHookersGreen} ${colors.tailwind.borderMossGreen}`;
         }
 
         function getInputClasses() {
-            return `shadow appearance-none border rounded-lg w-full py-2.5 px-3 sm:py-3 sm:px-4 leading-tight focus:outline-none focus:ring-2 ${darkMode ? `bg-gray-700 text-white border-gray-600 focus:ring-gray-500` : `bg-white text-gray-700 border-[${colors.mediumGreen}] focus:ring-[${colors.mediumGreen}]`}`;
+            return `shadow appearance-none border rounded-lg w-full py-2.5 px-3 sm:py-3 sm:px-4 leading-tight focus:outline-none focus:ring-2 bg-white text-gray-700 ${colors.tailwind.borderMossGreen} ${colors.tailwind.focusRingMossGreen}`;
         }
 
-        function getButtonClasses(baseColor, hoverColor) {
-            return `font-bold py-2.5 px-5 sm:py-3 sm:px-6 rounded-lg text-base sm:text-lg focus:outline-none focus:shadow-outline transition-all duration-200 transform hover:scale-105 ${darkMode ? `bg-[${baseColor}] hover:bg-[${hoverColor}] text-[${colors.darkText}]` : `bg-[${baseColor}] hover:bg-[${hoverColor}] text-white`}`;
+        function getButtonClasses(baseBgClass, hoverBgClass) {
+            const textColorClass = 'text-white'; // Always white text on these buttons
+
+            return `font-bold py-2.5 px-5 sm:py-3 sm:px-6 rounded-lg text-base sm:text-lg focus:outline-none focus:shadow-outline transition-all duration-200 transform hover:scale-105 ${baseBgClass} ${hoverBgClass} ${textColorClass}`;
         }
 
         function getLabelClasses() {
-            return `block text-sm font-semibold mb-2 ${darkMode ? `text-[${colors.darkText}]` : 'text-gray-700'}`;
+            return `block text-sm font-semibold mb-2 text-gray-700`;
         }
 
         function getTitleClasses() {
-            return `text-2xl sm:text-3xl font-bold mb-6 text-center ${darkMode ? `text-[${colors.darkText}]` : `text-gray-800`}`;
+            return `text-2xl sm:text-3xl font-bold mb-6 text-center text-gray-800`;
         }
 
         function getSubtitleClasses() {
-            return `text-xl font-semibold mb-4 ${darkMode ? `text-[${colors.darkText}]` : `text-[${colors.darkGreen}]`}`;
+            return `text-xl font-semibold mb-4 ${colors.tailwind.textCaribbeanCurrent}`;
         }
 
         function getItalicTextClasses() {
-            return `italic ${darkMode ? `text-gray-400` : `text-gray-600`}`;
+            return `italic text-gray-600`;
         }
 
         function getListItemClasses() {
-            return `flex items-center justify-between p-4 rounded-md shadow-sm border ${darkMode ? `bg-gray-700 border-gray-600 text-[${colors.darkText}]` : `bg-[${colors.lightBeige}] border-[${colors.mediumGreen}] text-gray-900`}`;
+            return `flex items-center justify-between p-4 rounded-md shadow-sm border ${colors.tailwind.bgOlivine} ${colors.tailwind.borderMossGreen} text-gray-900`;
         }
 
         function getIncomeTextClasses() {
-            return `text-lg font-medium ${darkMode ? `text-[${colors.darkText}]` : `text-[${colors.darkGreen}]`}`;
+            return `text-lg font-medium ${colors.tailwind.textCaribbeanCurrent}`;
         }
 
         function getExpenseTextClasses() {
@@ -197,11 +200,11 @@
         }
 
         function getSmallTextClasses() {
-            return `text-sm ${darkMode ? `text-gray-300` : `text-gray-700`}`;
+            return `text-sm text-gray-700`;
         }
 
         function getXSmallTextClasses() {
-            return `text-xs ${darkMode ? `text-gray-400` : `text-gray-500`}`;
+            return `text-xs text-gray-500`;
         }
 
         // --- Allgemeine App-Logik ---
@@ -230,8 +233,11 @@
                 case 'limits':
                     await renderBudgetLimitsPage();
                     break;
-                case 'invoice-upload':
-                    renderInvoiceUploadPage();
+                case 'savings-goals':
+                    await renderSavingsGoalsPage();
+                    break;
+                case 'invoice-analysis': // New case for invoice analysis
+                    await renderInvoiceAnalysisPage();
                     break;
                 default:
                     renderLoginPage();
@@ -243,6 +249,7 @@
             let email = '';
             let password = '';
             let isRegistering = false;
+            let rememberMe = true; // Default to checked
             let errorMessage = '';
             let loading = false;
 
@@ -252,7 +259,7 @@
                         <h2 class="${getTitleClasses()}">
                             ${isRegistering ? 'Registrieren' : 'Anmelden'}
                         </h2>
-                        ${errorMessage ? `<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-md relative mb-4" role="alert">
+                        ${errorMessage ? `<div class="bg-red-100 border border-red-400 ${colors.tailwind.textRed700} px-4 py-3 rounded-md relative mb-4" role="alert">
                             <strong class="font-bold">Fehler!</strong>
                             <span class="block sm:inline"> ${errorMessage}</span>
                         </div>` : ''}
@@ -264,11 +271,15 @@
                             <label class="${getLabelClasses()}" for="password">Passwort</label>
                             <input type="password" id="password" class="${getInputClasses()}" placeholder="********" value="${password}" ${loading ? 'disabled' : ''}>
                         </div>
+                        <div class="mb-6 flex items-center">
+                            <input type="checkbox" id="remember-me" class="mr-2 h-4 w-4 text-[#177E89] focus:ring-[#177E89] border-gray-300 rounded" ${rememberMe ? 'checked' : ''} ${loading ? 'disabled' : ''}>
+                            <label for="remember-me" class="text-sm text-gray-700">Eingeloggt bleiben</label>
+                        </div>
                         <div class="flex flex-col space-y-3 sm:space-y-4">
-                            <button id="auth-action-btn" class="${getButtonClasses(darkMode ? colors.darkGreen : colors.darkBlueGreen, darkMode ? colors.darkBlueGreen : colors.darkGreen)}" ${loading ? 'disabled' : ''}>
+                            <button id="auth-action-btn" class="${getButtonClasses(colors.tailwind.bgTeal, colors.tailwind.hoverBgCaribbeanCurrent)}" ${loading ? 'disabled' : ''}>
                                 ${loading ? 'Lade...' : (isRegistering ? 'Registrieren' : 'Anmelden')}
                             </button>
-                            <button id="toggle-register-btn" class="${getButtonClasses(darkMode ? 'gray-700' : colors.lightGrayBlue, darkMode ? 'gray-600' : 'gray-300')}" ${loading ? 'disabled' : ''}>
+                            <button id="toggle-register-btn" class="${getButtonClasses('bg-gray-200', 'hover:bg-gray-300')} text-gray-800">
                                 ${isRegistering ? 'Ich habe bereits ein Konto' : 'Ich habe noch kein Konto'}
                             </button>
                         </div>
@@ -277,6 +288,7 @@
 
                 document.getElementById('email').oninput = (e) => { email = e.target.value; };
                 document.getElementById('password').oninput = (e) => { password = e.target.value; };
+                document.getElementById('remember-me').onchange = (e) => { rememberMe = e.target.checked; };
                 document.getElementById('auth-action-btn').onclick = handleAuthAction;
                 document.getElementById('toggle-register-btn').onclick = () => {
                     isRegistering = !isRegistering;
@@ -291,6 +303,9 @@
                 updateUI(); // UI aktualisieren, um Ladezustand anzuzeigen
 
                 try {
+                    // Set persistence based on the "remember me" checkbox
+                    await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
+
                     if (isRegistering) {
                         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                         currentUser = userCredential.user;
@@ -313,6 +328,9 @@
                         msg = "Diese E-Mail-Adresse wird bereits verwendet.";
                     } else if (error.code === 'auth/weak-password') {
                         msg = "Das Passwort ist zu schwach (mind. 6 Zeichen).";
+                    } else if (error.code === 'auth/requests-to-this-api-identitytoolkit-method-google.cloud.identitytoolkit.v1.authenticationservice.signinwithpassword-are-blocked.') {
+                        msg = "Authentifizierungsanfrage blockiert. Bitte stellen Sie sicher, dass die E-Mail/Passwort-Anmeldung in Ihrem Firebase-Projekt aktiviert ist und Ihre API-Schlüssel korrekt konfiguriert sind.";
+                        console.log("DEBUG: Firebase Auth Error - Check Firebase project settings for Email/Password sign-in method and API key restrictions.");
                     }
                     errorMessage = msg;
                 } finally {
@@ -348,23 +366,23 @@
                     <div class="${getCardClasses()} max-w-3xl mx-auto">
                         <h2 class="${getTitleClasses()}">Dein Budget-Dashboard</h2>
 
-                        ${errorMessage ? `<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-md relative mb-4" role="alert">
+                        ${errorMessage ? `<div class="bg-red-100 border border-red-400 ${colors.tailwind.textRed700} px-4 py-3 rounded-md relative mb-4" role="alert">
                             <strong class="font-bold">Fehler!</strong>
                             <span class="block sm:inline"> ${errorMessage}</span>
                         </div>` : ''}
 
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 text-center">
-                            <div class="p-4 rounded-lg shadow-sm ${darkMode ? `bg-[${colors.darkGreen}] text-[${colors.darkText}]` : `bg-[${colors.lightBeige}] text-[${colors.darkBlueGreen}]`}">
+                            <div class="p-4 rounded-lg shadow-sm ${colors.tailwind.bgCaribbeanCurrent} text-white">
                                 <p class="text-lg">Einnahmen</p>
                                 <p class="text-2xl font-bold">${totalIncome.toFixed(2)} CHF</p>
                             </div>
-                            <div class="p-4 rounded-lg shadow-sm ${darkMode ? `bg-red-800 text-white` : 'bg-red-100 text-red-800'}">
+                            <div class="p-4 rounded-lg shadow-sm ${colors.tailwind.bgRed800} text-white">
                                 <p class="text-lg">Ausgaben</p>
                                 <p class="text-2xl font-bold">${totalExpense.toFixed(2)} CHF</p>
                             </div>
                             <div class="p-4 rounded-lg shadow-sm ${balance >= 0
-                                ? (darkMode ? `bg-[${colors.darkGreen}] text-[${colors.darkText}]` : `bg-[${colors.lightBeige}] text-[${colors.darkGreen}]`)
-                                : (darkMode ? `bg-yellow-800 text-white` : 'bg-yellow-100 text-yellow-600')
+                                ? `${colors.tailwind.bgCaribbeanCurrent} text-white`
+                                : `${colors.tailwind.bgYellow100} ${colors.tailwind.textYellow600}`
                             }">
                                 <p class="text-lg">Saldo</p>
                                 <p class="text-2xl font-bold">${balance.toFixed(2)} CHF</p>
@@ -398,7 +416,7 @@
                                     </select>
                                 </div>
                             </div>
-                            <button id="add-transaction-btn" class="w-full ${getButtonClasses(darkMode ? colors.darkGreen : colors.darkBlueGreen, darkMode ? colors.darkBlueGreen : colors.darkGreen)}" ${loading || currentCategories.length === 0 ? 'disabled' : ''}>
+                            <button id="add-transaction-btn" class="w-full ${getButtonClasses(colors.tailwind.bgTeal, colors.tailwind.hoverBgCaribbeanCurrent)}" ${loading || currentCategories.length === 0 ? 'disabled' : ''}>
                                 ${loading ? 'Hinzufügen...' : 'Transaktion hinzufügen'}
                             </button>
                             ${currentCategories.length === 0 ? `<p class="text-sm text-red-500 mt-2 text-center">Bitte füge zuerst Kategorien im Reiter "Kategorien" hinzu, um Transaktionen zu erfassen.</p>` : ''}
@@ -427,7 +445,7 @@
                         </div>
 
                         <div class="mt-6 sm:mt-8 text-center">
-                            <button id="reset-dashboard-btn" class="${getButtonClasses(darkMode ? colors.mediumGreen : colors.mediumGreen, darkMode ? colors.darkGreen : colors.darkGreen)}" ${loading ? 'disabled' : ''}>
+                            <button id="reset-dashboard-btn" class="${getButtonClasses(colors.tailwind.bgMossGreen, colors.tailwind.hoverBgCaribbeanCurrent)}" ${loading ? 'disabled' : ''}>
                                 Dashboard zurücksetzen
                             </button>
                         </div>
@@ -437,14 +455,14 @@
                         <div class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4">
                             <div class="${getCardClasses()} max-w-sm sm:max-w-md w-full text-center">
                                 <h3 class="${getSubtitleClasses()} text-xl sm:text-2xl">Dashboard zurücksetzen?</h3>
-                                <p class="mb-5 sm:mb-6 text-sm sm:text-base ${darkMode ? `text-gray-300` : `text-gray-700`}">
+                                <p class="mb-5 sm:mb-6 text-sm sm:text-base text-gray-700">
                                     Bist du sicher, dass du alle deine Transaktionen löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden.
                                 </p>
                                 <div class="flex flex-col sm:flex-row justify-center space-y-3 sm:space-y-0 sm:space-x-4">
-                                    <button id="confirm-reset-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 sm:py-2.5 sm:px-5 rounded-lg text-sm sm:text-base transition-all duration-200" ${loading ? 'disabled' : ''}>
+                                    <button id="confirm-reset-btn" class="${colors.tailwind.bgRed600} ${colors.tailwind.hoverBgRed700} text-white font-bold py-2 px-4 sm:py-2.5 sm:px-5 rounded-lg text-sm sm:text-base transition-all duration-200" ${loading ? 'disabled' : ''}>
                                         Ja, löschen
                                     </button>
-                                    <button id="cancel-reset-btn" class="${getButtonClasses(darkMode ? 'gray-700' : colors.lightGrayBlue, darkMode ? 'gray-600' : 'gray-300')} text-sm sm:text-base" ${loading ? 'disabled' : ''}>
+                                    <button id="cancel-reset-btn" class="${getButtonClasses('bg-gray-200', 'hover:bg-gray-300')} text-gray-800" ${loading ? 'disabled' : ''}>
                                         Abbrechen
                                     </button>
                                 </div>
@@ -652,7 +670,7 @@
                     <div class="${getCardClasses()} max-w-2xl mx-auto">
                         <h2 class="${getTitleClasses()}">Kategorien verwalten</h2>
 
-                        ${errorMessage ? `<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-md relative mb-4" role="alert">
+                        ${errorMessage ? `<div class="bg-red-100 border border-red-400 ${colors.tailwind.textRed700} px-4 py-3 rounded-md relative mb-4" role="alert">
                             <strong class="font-bold">Fehler!</strong>
                             <span class="block sm:inline"> ${errorMessage}</span>
                         </div>` : ''}
@@ -661,7 +679,7 @@
                             <h3 class="${getSubtitleClasses()}">Neue Kategorie hinzufügen</h3>
                             <div class="flex flex-col sm:flex-row gap-3 sm:gap-4">
                                 <input type="text" id="new-category-name" class="flex-grow ${getInputClasses()}" placeholder="Name der neuen Kategorie" value="${newCategoryName}" ${loading ? 'disabled' : ''}>
-                                <button id="add-category-btn" class="${getButtonClasses(darkMode ? colors.darkGreen : colors.darkGreen, darkMode ? colors.darkBlueGreen : colors.darkBlueGreen)}" ${loading ? 'disabled' : ''}>
+                                <button id="add-category-btn" class="w-full ${getButtonClasses(colors.tailwind.bgTeal, colors.tailwind.hoverBgCaribbeanCurrent)}" ${loading ? 'disabled' : ''}>
                                     ${loading ? 'Hinzufügen...' : 'Hinzufügen'}
                                 </button>
                             </div>
@@ -674,7 +692,7 @@
                                     ${categories.map(cat => `
                                         <li class="${getListItemClasses()}">
                                             <span class="text-lg font-medium">${cat.name}</span>
-                                            <button data-id="${cat.id}" class="delete-category-btn bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg text-sm focus:outline-none focus:shadow-outline transition-all duration-200 transform hover:scale-105" ${loading ? 'disabled' : ''}>
+                                            <button data-id="${cat.id}" class="${colors.tailwind.bgRed600} ${colors.tailwind.hoverBgRed700} text-white font-bold py-2 px-4 rounded-lg text-sm focus:outline-none focus:shadow-outline transition-all duration-200 transform hover:scale-105" ${loading ? 'disabled' : ''}>
                                                 ${loading ? 'Lösche...' : 'Löschen'}
                                             </button>
                                         </li>
@@ -769,7 +787,7 @@
                     <div class="${getCardClasses()} max-w-3xl mx-auto">
                         <h2 class="${getTitleClasses()}">Einstellungen für wiederkehrende Transaktionen</h2>
 
-                        ${errorMessage ? `<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-md relative mb-4" role="alert">
+                        ${errorMessage ? `<div class="bg-red-100 border border-red-400 ${colors.tailwind.textRed700} px-4 py-3 rounded-md relative mb-4" role="alert">
                             <strong class="font-bold">Fehler!</strong>
                             <span class="block sm:inline"> ${errorMessage}</span>
                         </div>` : ''}
@@ -815,7 +833,7 @@
                                     </div>
                                 ` : ''}
                             </div>
-                            <button id="add-recurring-btn" class="w-full ${getButtonClasses(darkMode ? colors.darkGreen : colors.darkGreen, darkMode ? colors.darkBlueGreen : colors.darkBlueGreen)}" ${loading || (currentCategories.length === 0 && newRecurringType !== 'income') ? 'disabled' : ''}>
+                            <button id="add-recurring-btn" class="w-full ${getButtonClasses(colors.tailwind.bgTeal, colors.tailwind.hoverBgCaribbeanCurrent)}" ${loading || (currentCategories.length === 0 && newRecurringType !== 'income') ? 'disabled' : ''}>
                                 ${loading ? 'Hinzufügen...' : 'Wiederkehrende Transaktion hinzufügen'}
                             </button>
                             ${currentCategories.length === 0 ? `<p class="text-sm text-red-500 mt-2 text-center">Bitte füge zuerst Kategorien im Reiter "Kategorien" hinzu, um wiederkehrende Transaktionen zu erfassen.</p>` : ''}
@@ -840,7 +858,7 @@
                                                     ${t.recurringDay ? ` | Zahltag: Tag ${t.recurringDay} des Monats` : ''}
                                                 </p>
                                             </div>
-                                            <button data-id="${t.id}" class="delete-recurring-btn bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg text-sm focus:outline-none focus:shadow-outline transition-all duration-200 transform hover:scale-105" ${loading ? 'disabled' : ''}>
+                                            <button data-id="${t.id}" class="${colors.tailwind.bgRed600} ${colors.tailwind.hoverBgRed700} text-white font-bold py-2 px-4 rounded-lg text-sm focus:outline-none focus:shadow-outline transition-all duration-200 transform hover:scale-105" ${loading ? 'disabled' : ''}>
                                                 ${loading ? 'Lösche...' : 'Löschen'}
                                             </button>
                                         </li>
@@ -980,7 +998,7 @@
                     <div class="${getCardClasses()} max-w-3xl mx-auto">
                         <h2 class="${getTitleClasses()}">Budgetgrenzen verwalten</h2>
 
-                        ${errorMessage ? `<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-md relative mb-4" role="alert">
+                        ${errorMessage ? `<div class="bg-red-100 border border-red-400 ${colors.tailwind.textRed700} px-4 py-3 rounded-md relative mb-4" role="alert">
                             <strong class="font-bold">Fehler!</strong>
                             <span class="block sm:inline"> ${errorMessage}</span>
                         </div>` : ''}
@@ -1002,7 +1020,7 @@
                                     <input type="number" id="limitAmount" class="${getInputClasses()}" placeholder="z.B. 200.00" value="${newLimitAmount}" ${loading ? 'disabled' : ''}>
                                 </div>
                             </div>
-                            <button id="set-limit-btn" class="w-full ${getButtonClasses(darkMode ? colors.darkGreen : colors.darkGreen, darkMode ? colors.darkBlueGreen : colors.darkBlueGreen)}" ${loading || currentCategories.length === 0 || selectedCategoryId === '' ? 'disabled' : ''}>
+                            <button id="set-limit-btn" class="w-full ${getButtonClasses(colors.tailwind.bgTeal, colors.tailwind.hoverBgCaribbeanCurrent)}" ${loading || currentCategories.length === 0 || selectedCategoryId === '' ? 'disabled' : ''}>
                                 ${loading ? 'Speichere...' : 'Grenze festlegen'}
                             </button>
                             ${currentCategories.length === 0 ? `<p class="text-sm text-red-500 mt-2 text-center">Bitte füge zuerst Kategorien im Reiter "Kategorien" hinzu, um Budgetgrenzen festzulegen.</p>` : ''}
@@ -1018,7 +1036,7 @@
                                                 <span class="text-lg font-medium">${currentCategories.find(cat => cat.id === limit.categoryId)?.name || 'Unbekannt'}</span>
                                                 <p class="${getSmallTextClasses()}">Grenze: ${limit.amount.toFixed(2)} CHF</p>
                                             </div>
-                                            <button data-id="${limit.id}" class="delete-limit-btn bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg text-sm focus:outline-none focus:shadow-outline transition-all duration-200 transform hover:scale-105" ${loading ? 'disabled' : ''}>
+                                            <button data-id="${limit.id}" class="${colors.tailwind.bgRed600} ${colors.tailwind.hoverBgRed700} text-white font-bold py-2 px-4 rounded-lg text-sm focus:outline-none focus:shadow-outline transition-all duration-200 transform hover:scale-105" ${loading ? 'disabled' : ''}>
                                                 ${loading ? 'Lösche...' : 'Löschen'}
                                             </button>
                                         </li>
@@ -1120,101 +1138,394 @@
             updateBudgetLimitsUI(); // Initialer Render
         }
 
-        // --- Rechnungen hochladen Seite ---
-        function renderInvoiceUploadPage() {
-            let selectedFile = null;
-            let imagePreviewUrl = '';
-            let errorMessage = '';
+        // --- Sparziele-Seite (NEW) ---
+        async function renderSavingsGoalsPage() {
+            let savingsGoals = [];
+            let newGoalName = '';
+            let newGoalTargetAmount = '';
+            let newGoalTargetDate = '';
+            let errorMessage = ''; // Error message for the main savings goals page
+            let modalErrorMessage = ''; // Error message specifically for the add funds modal
             let loading = false;
-            let recognizedData = null; // { amount, description, type, date, categoryId }
-            let reviewMode = false; // true, wenn Daten zur Überprüfung angezeigt werden
+            let showAddFundsModal = false;
+            let selectedGoalForFunds = null;
+            let fundsToAdd = '';
+            let currentBalance = 0; // Initialize current balance for this page
 
-            const updateInvoiceUploadUI = () => {
+            const savingsGoalsCollectionRef = collection(db, `artifacts/${appId}/users/${currentUserId}/savingsGoals`);
+            const transactionsCollectionRef = collection(db, `artifacts/${appId}/users/${currentUserId}/transactions`); // Reference for transactions
+
+            const updateSavingsGoalsUI = () => {
                 mainContent.innerHTML = `
                     <div class="${getCardClasses()} max-w-3xl mx-auto">
-                        <h2 class="${getTitleClasses()}">Rechnungen hochladen & erkennen</h2>
+                        <h2 class="${getTitleClasses()}">Deine Sparziele</h2>
 
-                        ${errorMessage ? `<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-md relative mb-4" role="alert">
+                        ${errorMessage ? `<div class="bg-red-100 border border-red-400 ${colors.tailwind.textRed700} px-4 py-3 rounded-md relative mb-4" role="alert">
                             <strong class="font-bold">Fehler!</strong>
                             <span class="block sm:inline"> ${errorMessage}</span>
                         </div>` : ''}
 
                         <div class="${getInnerCardClasses()}">
-                            <h3 class="${getSubtitleClasses()}">Rechnung hochladen</h3>
-                            <input type="file" id="invoice-file-input" accept="image/*" class="${getInputClasses()} mb-4" ${loading ? 'disabled' : ''}>
-                            ${imagePreviewUrl ? `<div class="mb-4 text-center"><img src="${imagePreviewUrl}" alt="Rechnungsvorschau" class="max-w-full h-auto rounded-lg shadow-md mx-auto"></div>` : ''}
-                            <button id="analyze-invoice-btn" class="w-full ${getButtonClasses(darkMode ? colors.darkGreen : colors.darkBlueGreen, darkMode ? colors.darkBlueGreen : colors.darkGreen)}" ${!selectedFile || loading || reviewMode ? 'disabled' : ''}>
-                                ${loading ? 'Analysiere...' : 'Rechnung analysieren'}
+                            <h3 class="${getSubtitleClasses()}">Neues Sparziel hinzufügen</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                <div>
+                                    <label class="${getLabelClasses()}" for="goalName">Name des Ziels</label>
+                                    <input type="text" id="goalName" class="${getInputClasses()}" placeholder="z.B. Neues Handy" value="${newGoalName}" ${loading ? 'disabled' : ''}>
+                                </div>
+                                <div>
+                                    <label class="${getLabelClasses()}" for="goalTargetAmount">Zielbetrag (CHF)</label>
+                                    <input type="number" id="goalTargetAmount" class="${getInputClasses()}" placeholder="z.B. 800.00" value="${newGoalTargetAmount}" ${loading ? 'disabled' : ''}>
+                                </div>
+                                <div>
+                                    <label class="${getLabelClasses()}" for="goalTargetDate">Zieldatum</label>
+                                    <input type="date" id="goalTargetDate" class="${getInputClasses()}" value="${newGoalTargetDate}" ${loading ? 'disabled' : ''}>
+                                </div>
+                            </div>
+                            <button id="add-goal-btn" class="w-full ${getButtonClasses(colors.tailwind.bgTeal, colors.tailwind.hoverBgCaribbeanCurrent)}" ${loading ? 'disabled' : ''}>
+                                ${loading ? 'Hinzufügen...' : 'Sparziel hinzufügen'}
                             </button>
                         </div>
 
-                        ${reviewMode ? `
-                            <div class="${getInnerCardClasses()} mt-8">
-                                <h3 class="${getSubtitleClasses()}">Erkannte Daten überprüfen</h3>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                    <div>
-                                        <label class="${getLabelClasses()}" for="recognizedAmount">Betrag (CHF)</label>
-                                        <input type="number" id="recognizedAmount" class="${getInputClasses()}" value="${recognizedData.amount || ''}" ${loading ? 'disabled' : ''}>
-                                    </div>
-                                    <div>
-                                        <label class="${getLabelClasses()}" for="recognizedDescription">Beschreibung</label>
-                                        <input type="text" id="recognizedDescription" class="${getInputClasses()}" value="${recognizedData.description || ''}" ${loading ? 'disabled' : ''}>
-                                    </div>
-                                    <div>
-                                        <label class="${getLabelClasses()}" for="recognizedType">Typ</label>
-                                        <select id="recognizedType" class="${getInputClasses()}" ${loading ? 'disabled' : ''}>
-                                            <option value="expense" ${recognizedData.type === 'expense' ? 'selected' : ''}>Ausgabe</option>
-                                            <option value="income" ${recognizedData.type === 'income' ? 'selected' : ''}>Einnahme</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label class="${getLabelClasses()}" for="recognizedCategory">Kategorie</label>
-                                        <select id="recognizedCategory" class="${getInputClasses()}" ${loading || currentCategories.length === 0 ? 'disabled' : ''}>
-                                            ${currentCategories.length === 0 ? `<option value="">Keine Kategorien verfügbar</option>` :
-                                                currentCategories.map(cat => `<option value="${cat.id}" ${recognizedData.categoryId === cat.id ? 'selected' : ''}>${cat.name}</option>`).join('')
-                                            }
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label class="${getLabelClasses()}" for="recognizedDate">Datum</label>
-                                        <input type="date" id="recognizedDate" class="${getInputClasses()}" value="${recognizedData.date || ''}" ${loading ? 'disabled' : ''}>
-                                    </div>
+                        <div class="${getInnerCardClasses()}">
+                            <h3 class="${getSubtitleClasses()}">Aktuelle Sparziele</h3>
+                            <p class="text-md font-semibold mb-4 text-gray-800">Verfügbarer Saldo: ${currentBalance.toFixed(2)} CHF</p>
+                            ${savingsGoals.length === 0 ? `<p class="${getItalicTextClasses()}">Noch keine Sparziele festgelegt.</p>` : `
+                                <ul class="space-y-4">
+                                    ${savingsGoals.map(goal => {
+                                        const progress = (goal.currentAmount / goal.targetAmount) * 100;
+                                        const progressBarColor = progress >= 100 ? 'bg-green-500' : 'bg-blue-500';
+                                        const textColor = 'text-gray-900';
+                                        const subTextColor = 'text-gray-700';
+                                        const goalStatus = goal.currentAmount >= goal.targetAmount ? 'Erreicht 🎉' : 'In Bearbeitung';
+                                        const targetDateFormatted = goal.targetDate ? new Date(goal.targetDate).toLocaleDateString() : 'N/A';
+
+                                        return `
+                                            <li class="${getListItemClasses()} flex-col items-start space-y-2">
+                                                <div class="w-full flex justify-between items-center">
+                                                    <span class="text-lg font-medium ${textColor}">${goal.name}</span>
+                                                    <span class="text-base font-semibold ${goal.currentAmount >= goal.targetAmount ? 'text-green-600' : 'text-blue-600'}">${goal.currentAmount.toFixed(2)} CHF / ${goal.targetAmount.toFixed(2)} CHF</span>
+                                                </div>
+                                                <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                                    <div class="${progressBarColor} h-2.5 rounded-full" style="width: ${Math.min(100, progress)}%;"></div>
+                                                </div>
+                                                <div class="w-full flex justify-between text-sm ${subTextColor}">
+                                                    <span>Fortschritt: ${progress.toFixed(1)}%</span>
+                                                    <span>Status: ${goalStatus}</span>
+                                                </div>
+                                                <div class="w-full flex justify-between text-xs ${getXSmallTextClasses()}">
+                                                    <span>Zieldatum: ${targetDateFormatted}</span>
+                                                </div>
+                                                <div class="w-full flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 mt-2">
+                                                    <button data-id="${goal.id}" class="add-funds-btn ${getButtonClasses(colors.tailwind.bgMossGreen, colors.tailwind.hoverBgCaribbeanCurrent)} text-sm py-1.5 px-3" ${loading || goal.currentAmount >= goal.targetAmount ? 'disabled' : ''}>
+                                                        Geld hinzufügen
+                                                    </button>
+                                                    <button data-id="${goal.id}" class="delete-goal-btn ${colors.tailwind.bgRed600} ${colors.tailwind.hoverBgRed700} text-white font-bold py-1.5 px-3 rounded-lg text-sm focus:outline-none focus:shadow-outline transition-all duration-200 transform hover:scale-105" ${loading ? 'disabled' : ''}>
+                                                        Löschen
+                                                    </button>
+                                                </div>
+                                            </li>
+                                        `;
+                                    }).join('')}
+                                </ul>
+                            `}
+                        </div>
+                    </div>
+
+                    ${showAddFundsModal ? `
+                        <div class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4">
+                            <div class="${getCardClasses()} max-w-sm w-full text-center">
+                                <h3 class="${getSubtitleClasses()} text-xl sm:text-2xl">Geld zu "${selectedGoalForFunds ? selectedGoalForFunds.name : ''}" hinzufügen</h3>
+                                <p class="mb-4 text-sm sm:text-base text-gray-700">
+                                    Aktueller Betrag: ${selectedGoalForFunds ? selectedGoalForFunds.currentAmount.toFixed(2) : '0.00'} CHF
+                                </p>
+                                ${modalErrorMessage ? `<div class="bg-red-100 border border-red-400 ${colors.tailwind.textRed700} px-4 py-3 rounded-md relative mb-4" role="alert">
+                                    <strong class="font-bold">Fehler!</strong>
+                                    <span class="block sm:inline"> ${modalErrorMessage}</span>
+                                </div>` : ''}
+                                <div class="mb-6">
+                                    <label class="${getLabelClasses()}" for="fundsToAddInput">Betrag hinzufügen (CHF)</label>
+                                    <input type="number" id="fundsToAddInput" class="${getInputClasses()}" placeholder="z.B. 50.00" value="${fundsToAdd}" ${loading ? 'disabled' : ''}>
                                 </div>
-                                <div class="flex flex-col sm:flex-row justify-center space-y-3 sm:space-y-0 sm:space-x-4 mt-6">
-                                    <button id="confirm-invoice-btn" class="${getButtonClasses(darkMode ? colors.darkGreen : colors.darkBlueGreen, darkMode ? colors.darkBlueGreen : colors.darkGreen)}" ${loading ? 'disabled' : ''}>
-                                        ${loading ? 'Speichere...' : 'Bestätigen & Hinzufügen'}
+                                <div class="flex flex-col sm:flex-row justify-center space-y-3 sm:space-y-0 sm:space-x-4">
+                                    <button id="confirm-add-funds-btn" class="${getButtonClasses(colors.tailwind.bgTeal, colors.tailwind.hoverBgCaribbeanCurrent)} text-sm py-2 px-4" ${loading ? 'disabled' : ''}>
+                                        Hinzufügen
                                     </button>
-                                    <button id="cancel-review-btn" class="${getButtonClasses(darkMode ? 'gray-700' : colors.lightGrayBlue, darkMode ? 'gray-600' : 'gray-300')}" ${loading ? 'disabled' : ''}>
+                                    <button id="cancel-add-funds-btn" class="${getButtonClasses('bg-gray-200', 'hover:bg-gray-300')} text-gray-800" ${loading ? 'disabled' : ''}>
                                         Abbrechen
                                     </button>
                                 </div>
+                            </div>
+                        </div>
+                    ` : ''}
+                `;
+
+                // Re-attach event listeners
+                const goalNameInput = document.getElementById('goalName');
+                if (goalNameInput) goalNameInput.oninput = (e) => { newGoalName = e.target.value; };
+                const goalTargetAmountInput = document.getElementById('goalTargetAmount');
+                if (goalTargetAmountInput) goalTargetAmountInput.oninput = (e) => { newGoalTargetAmount = e.target.value; };
+                const goalTargetDateInput = document.getElementById('goalTargetDate');
+                if (goalTargetDateInput) goalTargetDateInput.oninput = (e) => { newGoalTargetDate = e.target.value; };
+
+                const addGoalBtn = document.getElementById('add-goal-btn');
+                if (addGoalBtn) addGoalBtn.onclick = handleAddGoal;
+
+                // FIX: Added 'add-funds-btn' class to the query selector
+                document.querySelectorAll('.add-funds-btn').forEach(button => {
+                    button.onclick = (e) => {
+                        const goalId = e.target.dataset.id;
+                        selectedGoalForFunds = savingsGoals.find(g => g.id === goalId);
+                        fundsToAdd = ''; // Reset input
+                        modalErrorMessage = ''; // Clear modal error when opening
+                        showAddFundsModal = true;
+                        updateSavingsGoalsUI();
+                    };
+                });
+
+                document.querySelectorAll('.delete-goal-btn').forEach(button => {
+                    button.onclick = (e) => handleDeleteGoal(e.target.dataset.id);
+                });
+
+                // Modal Event Listeners
+                if (showAddFundsModal) {
+                    const fundsToAddInput = document.getElementById('fundsToAddInput');
+                    if (fundsToAddInput) fundsToAddInput.oninput = (e) => {
+                        fundsToAdd = e.target.value;
+                        modalErrorMessage = ''; // Clear error on input change
+                        updateSavingsGoalsUI(); // Re-render to clear error message dynamically
+                    };
+
+                    const confirmAddFundsBtn = document.getElementById('confirm-add-funds-btn');
+                    if (confirmAddFundsBtn) confirmAddFundsBtn.onclick = handleAddFunds;
+
+                    const cancelAddFundsBtn = document.getElementById('cancel-add-funds-btn');
+                    if (cancelAddFundsBtn) cancelAddFundsBtn.onclick = () => { showAddFundsModal = false; modalErrorMessage = ''; updateSavingsGoalsUI(); };
+                }
+            };
+
+            const handleAddGoal = async () => {
+                errorMessage = '';
+                if (newGoalName.trim() === '') {
+                    errorMessage = "Bitte einen Namen für das Sparziel eingeben.";
+                    updateSavingsGoalsUI(); return;
+                }
+                if (newGoalTargetAmount === '' || isNaN(parseFloat(newGoalTargetAmount)) || parseFloat(newGoalTargetAmount) <= 0) {
+                    errorMessage = "Bitte einen gültigen Zielbetrag eingeben.";
+                    updateSavingsGoalsUI(); return;
+                }
+
+                loading = true;
+                updateSavingsGoalsUI();
+                try {
+                    await addDoc(savingsGoalsCollectionRef, {
+                        name: newGoalName.trim(),
+                        targetAmount: parseFloat(newGoalTargetAmount),
+                        currentAmount: 0, // Startet bei 0
+                        targetDate: newGoalTargetDate || null, // Optional
+                        createdAt: serverTimestamp(),
+                        userId: currentUserId,
+                        achieved: false,
+                        achievedDate: null
+                    });
+                    newGoalName = '';
+                    newGoalTargetAmount = '';
+                    newGoalTargetDate = '';
+                } catch (error) {
+                    console.error("Fehler beim Hinzufügen des Sparziels:", error);
+                    errorMessage = "Fehler beim Hinzufügen des Sparziels.";
+                } finally {
+                    loading = false;
+                    updateSavingsGoalsUI();
+                }
+            };
+
+            const handleAddFunds = async () => {
+                modalErrorMessage = ''; // Clear modal error before validation
+                if (!selectedGoalForFunds) return;
+                if (fundsToAdd === '' || isNaN(parseFloat(fundsToAdd)) || parseFloat(fundsToAdd) <= 0) {
+                    modalErrorMessage = "Bitte einen gültigen Betrag zum Hinzufügen eingeben.";
+                    updateSavingsGoalsUI(); return;
+                }
+
+                const amountToAdd = parseFloat(fundsToAdd);
+                if (amountToAdd > currentBalance) {
+                    modalErrorMessage = `Du kannst nicht mehr als deinen aktuellen Saldo (${currentBalance.toFixed(2)} CHF) hinzufügen.`;
+                    updateSavingsGoalsUI();
+                    return;
+                }
+
+                loading = true;
+                showAddFundsModal = false; // Modal schliessen, Ladezustand anzeigen
+                updateSavingsGoalsUI();
+
+                try {
+                    const newCurrentAmount = selectedGoalForFunds.currentAmount + amountToAdd;
+                    const goalDocRef = doc(db, `artifacts/${appId}/users/${currentUserId}/savingsGoals`, selectedGoalForFunds.id);
+
+                    let updateData = { currentAmount: newCurrentAmount };
+                    if (newCurrentAmount >= selectedGoalForFunds.targetAmount && !selectedGoalForFunds.achieved) {
+                        updateData.achieved = true;
+                        updateData.achievedDate = serverTimestamp();
+                    }
+
+                    await updateDoc(goalDocRef, updateData);
+
+                    // Belohnungs-Modal anzeigen, wenn Ziel erreicht wurde
+                    if (newCurrentAmount >= selectedGoalForFunds.targetAmount && !selectedGoalForFunds.achieved) {
+                        rewardMessage.textContent = `Herzlichen Glückwunsch! Du hast dein Sparziel "${selectedGoalForFunds.name}" erfolgreich erreicht!`;
+                        rewardModal.classList.remove('hidden');
+                        // Event Listener für das Schliessen des Modals
+                        closeRewardModalBtn.onclick = () => {
+                            rewardModal.classList.add('hidden');
+                        };
+                    }
+
+                    fundsToAdd = '';
+                    selectedGoalForFunds = null;
+                } catch (error) {
+                    console.error("Fehler beim Hinzufügen von Geld zum Sparziel:", error);
+                    modalErrorMessage = "Fehler beim Hinzufügen von Geld zum Sparziel: " + error.message;
+                } finally {
+                    loading = false;
+                    updateSavingsGoalsUI();
+                }
+            };
+
+            const handleDeleteGoal = async (goalId) => {
+                loading = true;
+                errorMessage = '';
+                updateSavingsGoalsUI();
+                try {
+                    const goalDocRef = doc(db, `artifacts/${appId}/users/${currentUserId}/savingsGoals`, goalId);
+                    await deleteDoc(goalDocRef);
+                } catch (error) {
+                    console.error("Fehler beim Löschen des Sparziels:", error);
+                    errorMessage = "Fehler beim Löschen des Sparziels.";
+                } finally {
+                    loading = false;
+                    updateSavingsGoalsUI();
+                }
+            };
+
+            // Listener for transactions to keep currentBalance updated
+            onSnapshot(query(transactionsCollectionRef), (snapshot) => {
+                const transactions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+                const totalExpense = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+                currentBalance = totalIncome - totalExpense;
+                updateSavingsGoalsUI(); // Re-render to show updated balance
+            }, (error) => {
+                console.error("Fehler beim Abrufen der Transaktionen für Sparziele:", error);
+                errorMessage = "Fehler beim Laden des Saldos.";
+                updateSavingsGoalsUI();
+            });
+
+
+            onSnapshot(query(savingsGoalsCollectionRef, orderBy('createdAt', 'desc')), (snapshot) => {
+                savingsGoals = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                updateSavingsGoalsUI();
+            }, (error) => {
+                console.error("Fehler beim Abrufen der Sparziele:", error);
+                errorMessage = "Fehler beim Laden der Sparziele.";
+                updateSavingsGoalsUI();
+            });
+
+            updateSavingsGoalsUI(); // Initialer Render
+        }
+
+        // --- NEUE SEITE: Rechnungen analysieren ---
+        async function renderInvoiceAnalysisPage() {
+            let selectedImageBase64 = null;
+            let imageMimeType = null;
+            let analysisResult = null; // Stores parsed JSON from LLM
+            let analysisLoading = false;
+            let analysisError = '';
+
+            // Form fields for extracted data (can be pre-filled)
+            let transactionAmount = '';
+            let transactionDescription = '';
+            let transactionDate = '';
+            let transactionCategoryId = currentCategories.length > 0 ? currentCategories[0].id : '';
+            let transactionType = 'expense'; // Invoices are usually expenses
+
+            const transactionsCollectionRef = collection(db, `artifacts/${appId}/users/${currentUserId}/transactions`);
+            const categoriesCollectionRef = collection(db, `artifacts/${appId}/users/${currentUserId}/categories`);
+
+            const updateInvoiceAnalysisUI = () => {
+                mainContent.innerHTML = `
+                    <div class="${getCardClasses()} max-w-3xl mx-auto">
+                        <h2 class="${getTitleClasses()}">Rechnungen analysieren</h2>
+
+                        ${analysisError ? `<div class="bg-red-100 border border-red-400 ${colors.tailwind.textRed700} px-4 py-3 rounded-md relative mb-4" role="alert">
+                            <strong class="font-bold">Fehler!</strong>
+                            <span class="block sm:inline"> ${analysisError}</span>
+                        </div>` : ''}
+
+                        <div class="${getInnerCardClasses()}">
+                            <h3 class="${getSubtitleClasses()}">Rechnung hochladen</h3>
+                            <input type="file" id="invoice-image-input" accept="image/png, image/jpeg" class="${getInputClasses()} mb-4">
+                            <div id="image-preview" class="mb-4 flex justify-center items-center h-48 bg-gray-100 border border-gray-300 rounded-lg overflow-hidden">
+                                ${selectedImageBase64 ? `<img src="${selectedImageBase64}" alt="Rechnungsvorschau" class="max-w-full max-h-full object-contain">` : `<span class="text-gray-500">Kein Bild ausgewählt</span>`}
+                            </div>
+                            <button id="analyze-invoice-btn" class="w-full ${getButtonClasses(colors.tailwind.bgTeal, colors.tailwind.hoverBgCaribbeanCurrent)}" ${!selectedImageBase64 || analysisLoading ? 'disabled' : ''}>
+                                ${analysisLoading ? 'Analysiere...' : 'Rechnung analysieren'}
+                            </button>
+                        </div>
+
+                        ${analysisResult ? `
+                            <div class="${getInnerCardClasses()}">
+                                <h3 class="${getSubtitleClasses()}">Analysierte Daten</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                    <div>
+                                        <label class="${getLabelClasses()}" for="analyzedAmount">Betrag (CHF)</label>
+                                        <input type="number" id="analyzedAmount" class="${getInputClasses()}" value="${transactionAmount}" placeholder="0.00">
+                                    </div>
+                                    <div>
+                                        <label class="${getLabelClasses()}" for="analyzedDescription">Beschreibung</label>
+                                        <input type="text" id="analyzedDescription" class="${getInputClasses()}" value="${transactionDescription}" placeholder="Beschreibung">
+                                    </div>
+                                    <div>
+                                        <label class="${getLabelClasses()}" for="analyzedDate">Datum</label>
+                                        <input type="date" id="analyzedDate" class="${getInputClasses()}" value="${transactionDate}">
+                                    </div>
+                                    <div>
+                                        <label class="${getLabelClasses()}" for="analyzedCategory">Kategorie</label>
+                                        <select id="analyzedCategory" class="${getInputClasses()}">
+                                            ${currentCategories.length === 0 ? `<option value="">Keine Kategorien verfügbar</option>` :
+                                                currentCategories.map(cat => `<option value="${cat.id}" ${transactionCategoryId === cat.id ? 'selected' : ''}>${cat.name}</option>`).join('')
+                                            }
+                                        </select>
+                                    </div>
+                                </div>
+                                <button id="save-analyzed-transaction-btn" class="w-full ${getButtonClasses(colors.tailwind.bgCaribbeanCurrent, colors.tailwind.hoverBgTeal)}">
+                                    Transaktion speichern
+                                </button>
                             </div>
                         ` : ''}
                     </div>
                 `;
 
-                // Event Listener neu zuweisen
-                const invoiceFileInput = document.getElementById('invoice-file-input');
-                if (invoiceFileInput) {
-                    invoiceFileInput.onchange = (e) => {
+                // Re-attach event listeners
+                const invoiceImageInput = document.getElementById('invoice-image-input');
+                if (invoiceImageInput) {
+                    invoiceImageInput.onchange = (e) => {
                         const file = e.target.files[0];
                         if (file) {
-                            selectedFile = file;
                             const reader = new FileReader();
                             reader.onload = (event) => {
-                                imagePreviewUrl = event.target.result;
-                                errorMessage = '';
-                                recognizedData = null; // Reset recognized data
-                                reviewMode = false; // Exit review mode
-                                updateInvoiceUploadUI();
+                                selectedImageBase64 = event.target.result;
+                                imageMimeType = file.type;
+                                analysisResult = null; // Reset previous analysis
+                                analysisError = '';
+                                updateInvoiceAnalysisUI();
                             };
                             reader.readAsDataURL(file);
                         } else {
-                            selectedFile = null;
-                            imagePreviewUrl = '';
-                            recognizedData = null;
-                            reviewMode = false;
-                            updateInvoiceUploadUI();
+                            selectedImageBase64 = null;
+                            imageMimeType = null;
+                            analysisResult = null;
+                            analysisError = '';
+                            updateInvoiceAnalysisUI();
                         }
                     };
                 }
@@ -1222,176 +1533,186 @@
                 const analyzeInvoiceBtn = document.getElementById('analyze-invoice-btn');
                 if (analyzeInvoiceBtn) analyzeInvoiceBtn.onclick = analyzeInvoice;
 
-                // Event Listeners für Review-Modus
-                if (reviewMode && recognizedData) {
-                    document.getElementById('recognizedAmount').oninput = (e) => { recognizedData.amount = e.target.value; };
-                    document.getElementById('recognizedDescription').oninput = (e) => { recognizedData.description = e.target.value; };
-                    document.getElementById('recognizedType').onchange = (e) => { recognizedData.type = e.target.value; };
-                    document.getElementById('recognizedCategory').onchange = (e) => { recognizedData.categoryId = e.target.value; };
-                    document.getElementById('recognizedDate').oninput = (e) => { recognizedData.date = e.target.value; };
+                if (analysisResult) {
+                    const analyzedAmountInput = document.getElementById('analyzedAmount');
+                    if (analyzedAmountInput) analyzedAmountInput.oninput = (e) => { transactionAmount = e.target.value; };
+                    const analyzedDescriptionInput = document.getElementById('analyzedDescription');
+                    if (analyzedDescriptionInput) analyzedDescriptionInput.oninput = (e) => { transactionDescription = e.target.value; };
+                    const analyzedDateInput = document.getElementById('analyzedDate');
+                    if (analyzedDateInput) analyzedDateInput.oninput = (e) => { transactionDate = e.target.value; };
+                    const analyzedCategorySelect = document.getElementById('analyzedCategory');
+                    if (analyzedCategorySelect) analyzedCategorySelect.onchange = (e) => { transactionCategoryId = e.target.value; };
 
-                    document.getElementById('confirm-invoice-btn').onclick = confirmInvoiceTransaction;
-                    document.getElementById('cancel-review-btn').onclick = () => {
-                        reviewMode = false;
-                        recognizedData = null;
-                        errorMessage = '';
-                        updateInvoiceUploadUI();
-                    };
+                    const saveAnalyzedTransactionBtn = document.getElementById('save-analyzed-transaction-btn');
+                    if (saveAnalyzedTransactionBtn) saveAnalyzedTransactionBtn.onclick = saveAnalyzedTransaction;
                 }
             };
 
             const analyzeInvoice = async () => {
-                if (!selectedFile) {
-                    errorMessage = "Bitte wählen Sie zuerst eine Rechnungsdatei aus.";
-                    updateInvoiceUploadUI();
+                if (!selectedImageBase64) {
+                    analysisError = "Bitte wählen Sie zuerst ein Rechnungsbild aus.";
+                    updateInvoiceAnalysisUI();
                     return;
                 }
 
-                loading = true;
-                errorMessage = '';
-                updateInvoiceUploadUI();
+                analysisLoading = true;
+                analysisError = '';
+                analysisResult = null; // Clear previous results
+                updateInvoiceAnalysisUI();
 
                 try {
-                    const reader = new FileReader();
-                    reader.readAsDataURL(selectedFile);
-                    reader.onloadend = async () => {
-                        const base64ImageData = reader.result.split(',')[1]; // Nur den Base64-Teil extrahieren
+                    // Extract base64 data without the "data:image/png;base64," prefix
+                    const base64ImageData = selectedImageBase64.split(',')[1];
 
-                        const prompt = `Analysiere diese Rechnung. Extrahiere den Gesamtbetrag (total amount), eine kurze Beschreibung (description, z.B. Name des Geschäfts oder Art der Dienstleistung), den Transaktionstyp (type: 'income' oder 'expense'), und das Rechnungsdatum (date) im Format YYYY-MM-DD. Wenn es sich um eine Ausgabe handelt, schlage eine passende Kategorie-ID aus der folgenden Liste vor. Wenn keine Kategorie passt, schlage die erste Kategorie vor. Gib die Antwort als JSON-Array zurück, das ein Objekt mit diesen Feldern enthält.
-                        Verfügbare Kategorien (ID: Name): ${currentCategories.map(cat => `${cat.id}: ${cat.name}`).join(', ')}.`;
+                    const prompt = `
+                        Analysiere diese Rechnung und extrahiere die folgenden Informationen im JSON-Format:
+                        {
+                            "amount": <Gesamtbetrag als Zahl, z.B. 123.45>,
+                            "description": "<Kurze Beschreibung der Rechnung, z.B. 'Einkauf bei Migros'>",
+                            "date": "<Datum der Rechnung im FormatYYYY-MM-DD>",
+                            "suggestedCategory": "<Vorgeschlagene Kategorie als String, z.B. 'Lebensmittel', 'Transport', 'Freizeit'>",
+                            "vendor": "<Name des Anbieters/Geschäfts, falls erkennbar>"
+                        }
+                        Stelle sicher, dass der Betrag immer ein numerischer Wert ist. Wenn ein Feld nicht gefunden wird, setze es auf null oder einen leeren String.
+                    `;
 
-                        const payload = {
-                            contents: [
-                                {
-                                    role: "user",
-                                    parts: [
-                                        { text: prompt },
-                                        {
-                                            inlineData: {
-                                                mimeType: selectedFile.type,
-                                                data: base64ImageData
-                                            }
+                    let chatHistory = [];
+                    chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                    const payload = {
+                        contents: [
+                            {
+                                role: "user",
+                                parts: [
+                                    { text: prompt },
+                                    {
+                                        inlineData: {
+                                            mimeType: imageMimeType,
+                                            data: base64ImageData
                                         }
-                                    ]
-                                }
-                            ],
-                            generationConfig: {
-                                responseMimeType: "application/json",
-                                responseSchema: {
-                                    type: "ARRAY",
-                                    items: {
-                                        type: "OBJECT",
-                                        properties: {
-                                            "amount": { "type": "NUMBER" },
-                                            "description": { "type": "STRING" },
-                                            "type": { "type": "STRING", "enum": ["income", "expense"] },
-                                            "date": { "type": "STRING" },
-                                            "categoryId": { "type": "STRING" }
-                                        },
-                                        "required": ["amount", "description", "type", "date", "categoryId"]
                                     }
+                                ]
+                            }
+                        ],
+                        generationConfig: {
+                            responseMimeType: "application/json",
+                            responseSchema: {
+                                type: "OBJECT",
+                                properties: {
+                                    "amount": { "type": "NUMBER" },
+                                    "description": { "type": "STRING" },
+                                    "date": { "type": "STRING" },
+                                    "suggestedCategory": { "type": "STRING" },
+                                    "vendor": { "type": "STRING" }
                                 }
                             }
-                        };
-
-                        const apiKey = ""; // Canvas fügt API-Schlüssel zur Laufzeit ein
-                        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-
-                        const response = await fetch(apiUrl, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(payload)
-                        });
-
-                        const result = await response.json();
-                        if (result.candidates && result.candidates.length > 0 &&
-                            result.candidates[0].content && result.candidates[0].content.parts &&
-                            result.candidates[0].content.parts.length > 0) {
-                            const jsonText = result.candidates[0].content.parts[0].text;
-                            const parsedJson = JSON.parse(jsonText);
-
-                            if (parsedJson && parsedJson.length > 0) {
-                                recognizedData = parsedJson[0];
-                                // Sicherstellen, dass categoryId eine gültige ID ist
-                                const validCategory = currentCategories.find(cat => cat.id === recognizedData.categoryId);
-                                if (!validCategory && currentCategories.length > 0) {
-                                    recognizedData.categoryId = currentCategories[0].id; // Fallback zur ersten Kategorie
-                                } else if (currentCategories.length === 0) {
-                                    recognizedData.categoryId = ''; // Keine Kategorie, wenn keine verfügbar
-                                }
-                                reviewMode = true; // Review-Modus aktivieren
-                            } else {
-                                errorMessage = "Keine Daten in der Rechnung erkannt. Bitte versuchen Sie es erneut oder geben Sie die Daten manuell ein.";
-                            }
-                        } else {
-                            errorMessage = "Fehler bei der Rechnungsanalyse. Ungültige Antwort vom Server.";
                         }
                     };
+
+                    const apiKey = ""; // Canvas will inject API key at runtime
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const result = await response.json();
+
+                    if (result.candidates && result.candidates.length > 0 &&
+                        result.candidates[0].content && result.candidates[0].content.parts &&
+                        result.candidates[0].content.parts.length > 0) {
+                        const jsonString = result.candidates[0].content.parts[0].text;
+                        analysisResult = JSON.parse(jsonString);
+
+                        // Pre-fill form fields with extracted data
+                        transactionAmount = analysisResult.amount ? parseFloat(analysisResult.amount).toFixed(2) : '';
+                        transactionDescription = analysisResult.description || '';
+                        transactionDate = analysisResult.date || '';
+
+                        // Try to match suggested category to existing categories
+                        const matchedCategory = currentCategories.find(cat =>
+                            analysisResult.suggestedCategory && cat.name.toLowerCase() === analysisResult.suggestedCategory.toLowerCase()
+                        );
+                        transactionCategoryId = matchedCategory ? matchedCategory.id : (currentCategories.length > 0 ? currentCategories[0].id : '');
+
+                    } else {
+                        analysisError = "Konnte keine Daten aus der Rechnung extrahieren. Bitte versuchen Sie es mit einem klareren Bild.";
+                        console.error("LLM response structure unexpected:", result);
+                    }
                 } catch (error) {
                     console.error("Fehler bei der Rechnungsanalyse:", error);
-                    errorMessage = "Ein Fehler ist aufgetreten: " + error.message;
+                    analysisError = "Fehler bei der Analyse der Rechnung: " + error.message;
                 } finally {
-                    loading = false;
-                    updateInvoiceUploadUI();
+                    analysisLoading = false;
+                    updateInvoiceAnalysisUI();
                 }
             };
 
-            const confirmInvoiceTransaction = async () => {
-                errorMessage = '';
-                if (!recognizedData || !recognizedData.amount || !recognizedData.description || !recognizedData.type || !recognizedData.date || !recognizedData.categoryId) {
-                    errorMessage = "Bitte füllen Sie alle Felder aus oder korrigieren Sie die erkannten Daten.";
-                    updateInvoiceUploadUI();
-                    return;
-                }
+            const saveAnalyzedTransaction = async () => {
+                analysisError = ''; // Clear previous errors
 
-                loading = true;
-                updateInvoiceUploadUI();
+                const amount = parseFloat(transactionAmount);
+                if (isNaN(amount) || amount <= 0) {
+                    analysisError = "Bitte geben Sie einen gültigen Betrag ein.";
+                    updateInvoiceAnalysisUI(); return;
+                }
+                if (transactionDescription.trim() === '') {
+                    analysisError = "Bitte geben Sie eine Beschreibung ein.";
+                    updateInvoiceAnalysisUI(); return;
+                }
+                if (transactionCategoryId === '') {
+                    analysisError = "Bitte wählen Sie eine Kategorie aus.";
+                    updateInvoiceAnalysisUI(); return;
+                }
+                const transactionDateTime = transactionDate ? new Date(transactionDate + 'T12:00:00') : new Date(); // Use midday to avoid timezone issues for date-only input
+
+                analysisLoading = true; // Use analysisLoading for saving as well
+                updateInvoiceAnalysisUI();
 
                 try {
-                    const transactionsCollectionRef = collection(db, `artifacts/${appId}/users/${currentUserId}/transactions`);
                     await addDoc(transactionsCollectionRef, {
-                        amount: parseFloat(recognizedData.amount),
-                        description: recognizedData.description.trim(),
-                        type: recognizedData.type,
-                        categoryId: recognizedData.categoryId,
-                        createdAt: new Date(recognizedData.date), // Verwende das erkannte Datum
+                        amount: amount,
+                        description: transactionDescription.trim(),
+                        type: transactionType, // Default to expense for invoices
+                        categoryId: transactionCategoryId,
+                        createdAt: transactionDateTime, // Use the extracted/selected date
                         userId: currentUserId,
-                        source: 'invoice-upload'
+                        source: 'invoice_analysis' // Mark as from invoice analysis
                     });
-                    errorMessage = "Transaktion erfolgreich hinzugefügt!";
-                    selectedFile = null;
-                    imagePreviewUrl = '';
-                    recognizedData = null;
-                    reviewMode = false;
+                    analysisError = "Transaktion erfolgreich gespeichert!";
+                    // Reset form after successful save
+                    selectedImageBase64 = null;
+                    imageMimeType = null;
+                    analysisResult = null;
+                    transactionAmount = '';
+                    transactionDescription = '';
+                    transactionDate = '';
+                    transactionCategoryId = currentCategories.length > 0 ? currentCategories[0].id : '';
+
                 } catch (error) {
-                    console.error("Fehler beim Hinzufügen der Rechnungs-Transaktion:", error);
-                    errorMessage = "Fehler beim Hinzufügen der Transaktion: " + error.message;
+                    console.error("Fehler beim Speichern der analysierten Transaktion:", error);
+                    analysisError = "Fehler beim Speichern der Transaktion: " + error.message;
                 } finally {
-                    loading = false;
-                    updateInvoiceUploadUI();
+                    analysisLoading = false;
+                    updateInvoiceAnalysisUI();
                 }
             };
 
-            // Kategorien Listener (um currentCategories aktuell zu halten)
-            onSnapshot(query(collection(db, `artifacts/${appId}/users/${currentUserId}/categories`)), (snapshot) => {
+            // Initial load of categories for the dropdown
+            onSnapshot(query(categoriesCollectionRef), (snapshot) => {
                 currentCategories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                // Wenn im Review-Modus und Kategorie nicht mehr existiert, Fallback
-                if (reviewMode && recognizedData && recognizedData.categoryId) {
-                    const validCategory = currentCategories.find(cat => cat.id === recognizedData.categoryId);
-                    if (!validCategory && currentCategories.length > 0) {
-                        recognizedData.categoryId = currentCategories[0].id; // Fallback zur ersten Kategorie
-                    } else if (currentCategories.length === 0) {
-                        recognizedData.categoryId = '';
-                    }
+                if (transactionCategoryId === '' && currentCategories.length > 0) {
+                    transactionCategoryId = currentCategories[0].id;
                 }
-                updateInvoiceUploadUI();
+                updateInvoiceAnalysisUI();
             }, (error) => {
-                console.error("Fehler beim Abrufen der Kategorien für Rechnungs-Upload:", error);
-                errorMessage = "Fehler beim Laden der Kategorien.";
-                updateInvoiceUploadUI();
+                console.error("Fehler beim Abrufen der Kategorien für Rechnungsanalyse:", error);
+                analysisError = "Fehler beim Laden der Kategorien.";
+                updateInvoiceAnalysisUI();
             });
 
-            updateInvoiceUploadUI(); // Initialer Render
+            updateInvoiceAnalysisUI(); // Initialer Render
         }
 
 
@@ -1406,12 +1727,10 @@
                     currentUser = user;
                     currentUserId = user.uid;
                     renderPage('dashboard');
-                    document.getElementById('dark-mode-toggle').style.display = 'block'; // Dark Mode Button anzeigen
                 } else {
                     currentUser = null;
                     currentUserId = null;
                     renderPage('login');
-                    document.getElementById('dark-mode-toggle').style.display = 'none'; // Dark Mode Button verbergen
                 }
                 isAuthReady = true;
             });
@@ -1421,7 +1740,8 @@
             categoriesBtn.addEventListener('click', () => renderPage('categories'));
             settingsBtn.addEventListener('click', () => renderPage('settings'));
             limitsBtn.addEventListener('click', () => renderPage('limits'));
-            invoiceUploadBtn.addEventListener('click', () => renderPage('invoice-upload'));
+            savingsGoalsBtn.addEventListener('click', () => renderPage('savings-goals'));
+            invoiceAnalysisBtn.addEventListener('click', () => renderPage('invoice-analysis')); // New event listener
             logoutBtn.addEventListener('click', async () => {
                 await signOut(auth);
                 currentUser = null;
@@ -1429,28 +1749,15 @@
                 renderPage('login');
             });
 
-            // Dark Mode Toggle
-            darkModeToggle.addEventListener('click', () => {
-                darkMode = !darkMode;
-                applyDarkModeStyles();
-                // Seite neu rendern, um Dark Mode auf dynamischen Inhalten anzuwenden
-                if (currentUser) { // Nur wenn angemeldet, um Endlosschleife auf Login-Seite zu vermeiden
-                    renderPage(getCurrentPageName());
-                } else {
-                    renderLoginPage(); // Login-Seite ist statisch genug
-                }
-            });
-
-            // Initialen Dark Mode Zustand anwenden
-            applyDarkModeStyles();
-
-            // Hilfsfunktion, um den aktuellen Seitennamen zu erhalten (für Dark Mode Toggle)
+            // Hilfsfunktion, um den aktuellen Seitennamen zu erhalten
             function getCurrentPageName() {
-                const activeBtn = headerNavButtons.find(btn => btn.classList.contains(darkMode ? `bg-[${colors.darkGreen}]` : `bg-[${colors.darkGreen}]`));
+                const activeBtn = headerNavButtons.find(btn => {
+                    return btn.className.includes(colors.tailwind.bgCaribbeanCurrent);
+                });
                 if (activeBtn) {
                     return activeBtn.id.replace('-btn', '');
                 }
-                return 'dashboard'; // Standardwert
+                return 'dashboard';
             }
         });
     </script>
