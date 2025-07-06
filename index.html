@@ -91,6 +91,15 @@
         let dashboardSettings = {}; // Globales Objekt für Dashboard-Einstellungen
         let dashboardSettingsDocRef; // Globale Referenz zum Firestore-Dokument
 
+        // Unsubscribe-Funktionen für Firestore-Listener
+        let unsubscribeDashboardSettings = null;
+        let unsubscribeTransactions = null;
+        let unsubscribeRecurringTransactions = null;
+        let unsubscribeCategories = null;
+        let unsubscribeBudgetLimits = null;
+        let unsubscribeSavingsGoals = null;
+        let unsubscribeTransactionsForSavingsGoals = null; // Separate listener for savings goals balance
+
         // Farbpalette
         const colors = {
             caribbeanCurrent: '#08605F',
@@ -822,7 +831,8 @@
             };
 
             // Listener für Transaktionen
-            onSnapshot(query(transactionsCollectionRef, orderBy('createdAt', 'desc')), (snapshot) => {
+            if (unsubscribeTransactions) unsubscribeTransactions(); // Unsubscribe previous listener
+            unsubscribeTransactions = onSnapshot(query(transactionsCollectionRef, orderBy('createdAt', 'desc')), (snapshot) => {
                 transactions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 updateDashboardUI();
             }, (error) => {
@@ -832,7 +842,8 @@
             });
 
             // Listener für wiederkehrende Transaktionen
-            onSnapshot(query(recurringTransactionsCollectionRef), (snapshot) => {
+            if (unsubscribeRecurringTransactions) unsubscribeRecurringTransactions(); // Unsubscribe previous listener
+            unsubscribeRecurringTransactions = onSnapshot(query(recurringTransactionsCollectionRef), (snapshot) => {
                 recurringTransactions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 updateDashboardUI();
             }, (error) => {
@@ -842,7 +853,8 @@
             });
 
             // Listener für Kategorien (falls noch nicht global geladen)
-            onSnapshot(query(categoriesCollectionRef), (snapshot) => {
+            if (unsubscribeCategories) unsubscribeCategories(); // Unsubscribe previous listener
+            unsubscribeCategories = onSnapshot(query(categoriesCollectionRef), (snapshot) => {
                 currentCategories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 if (newCategoryId === '' && currentCategories.length > 0) {
                     newCategoryId = currentCategories[0].id;
@@ -1007,7 +1019,8 @@
                 }
             };
 
-            onSnapshot(query(categoriesCollectionRef), (snapshot) => {
+            if (unsubscribeCategories) unsubscribeCategories(); // Unsubscribe previous listener
+            unsubscribeCategories = onSnapshot(query(categoriesCollectionRef), (snapshot) => {
                 categories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 currentCategories = categories;
                 updateCategoriesUI();
@@ -1251,7 +1264,8 @@
                 }
             };
 
-            onSnapshot(query(recurringTransactionsCollectionRef, orderBy('createdAt', 'desc')), (snapshot) => {
+            if (unsubscribeRecurringTransactions) unsubscribeRecurringTransactions(); // Unsubscribe previous listener
+            unsubscribeRecurringTransactions = onSnapshot(query(recurringTransactionsCollectionRef, orderBy('createdAt', 'desc')), (snapshot) => {
                 recurringTransactions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 updateSettingsUI();
             }, (error) => {
@@ -1260,7 +1274,9 @@
                 updateSettingsUI();
             });
 
-            onSnapshot(query(collection(db, `artifacts/${appId}/users/${currentUserId}/categories`)), (snapshot) => {
+            // Kategorien Listener (um currentCategories aktuell zu halten)
+            if (unsubscribeCategories) unsubscribeCategories(); // Unsubscribe previous listener
+            unsubscribeCategories = onSnapshot(query(collection(db, `artifacts/${appId}/users/${currentUserId}/categories`)), (snapshot) => {
                 currentCategories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 if (newRecurringCategoryId === '' && currentCategories.length > 0) {
                     newRecurringCategoryId = currentCategories[0].id;
@@ -1404,7 +1420,8 @@
                 }
             };
 
-            onSnapshot(query(budgetLimitsCollectionRef), (snapshot) => {
+            if (unsubscribeBudgetLimits) unsubscribeBudgetLimits(); // Unsubscribe previous listener
+            unsubscribeBudgetLimits = onSnapshot(query(budgetLimitsCollectionRef), (snapshot) => {
                 budgetLimits = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 updateBudgetLimitsUI();
             }, (error) => {
@@ -1413,7 +1430,8 @@
                 updateBudgetLimitsUI();
             });
 
-            onSnapshot(query(collection(db, `artifacts/${appId}/users/${currentUserId}/categories`)), (snapshot) => {
+            if (unsubscribeCategories) unsubscribeCategories(); // Unsubscribe previous listener
+            unsubscribeCategories = onSnapshot(query(collection(db, `artifacts/${appId}/users/${currentUserId}/categories`)), (snapshot) => {
                 currentCategories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 if (selectedCategoryId === '' && currentCategories.length > 0) {
                     selectedCategoryId = currentCategories[0].id;
@@ -1710,7 +1728,8 @@
                 }
             };
 
-            onSnapshot(query(transactionsCollectionRef), (snapshot) => {
+            if (unsubscribeTransactionsForSavingsGoals) unsubscribeTransactionsForSavingsGoals(); // Unsubscribe previous listener
+            unsubscribeTransactionsForSavingsGoals = onSnapshot(query(transactionsCollectionRef), (snapshot) => {
                 const transactions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
                 const totalExpense = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
@@ -1722,8 +1741,8 @@
                 updateSavingsGoalsUI();
             });
 
-
-            onSnapshot(query(savingsGoalsCollectionRef, orderBy('createdAt', 'desc')), (snapshot) => {
+            if (unsubscribeSavingsGoals) unsubscribeSavingsGoals(); // Unsubscribe previous listener
+            unsubscribeSavingsGoals = onSnapshot(query(savingsGoalsCollectionRef, orderBy('createdAt', 'desc')), (snapshot) => {
                 savingsGoals = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 updateSavingsGoalsUI();
             }, (error) => {
@@ -1995,7 +2014,8 @@
                 }
             };
 
-            onSnapshot(query(categoriesCollectionRef), (snapshot) => {
+            if (unsubscribeCategories) unsubscribeCategories(); // Unsubscribe previous listener
+            unsubscribeCategories = onSnapshot(query(categoriesCollectionRef), (snapshot) => {
                 currentCategories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 if (transactionCategoryId === '' && currentCategories.length > 0) {
                     transactionCategoryId = currentCategories[0].id;
@@ -2012,10 +2032,6 @@
 
         // --- Globale Funktion zum Speichern der Dashboard-Einstellungen ---
         const handleSaveDashboardSettings = async () => {
-            // Hier wird kein "loading" oder "errorMessage" übergeben, da diese Funktion
-            // direkt die globalen dashboardSettings aktualisiert und Firestore anspricht.
-            // Die UI-Updates werden durch den onSnapshot-Listener von dashboardSettings ausgelöst.
-
             const toggleAddTransaction = document.getElementById('toggle-add-transaction');
             const toggleUpcomingPayments = document.getElementById('toggle-upcoming-payments');
             const toggleTopExpenses = document.getElementById('toggle-top-expenses');
@@ -2024,7 +2040,6 @@
 
             if (!toggleAddTransaction || !toggleUpcomingPayments || !toggleTopExpenses || !toggleExpenseTrend || !toggleRecentTransactions) {
                 console.error("Ein oder mehrere Dashboard-Umschaltelemente wurden beim Speicherversuch im DOM nicht gefunden!");
-                // Hier könnte man eine globale Fehlermeldung setzen, die dann im UI angezeigt wird.
                 return;
             }
 
@@ -2053,6 +2068,39 @@
             }
         };
 
+        // Funktion zum Beenden aller Firestore-Listener
+        function detachAllFirestoreListeners() {
+            if (unsubscribeDashboardSettings) {
+                unsubscribeDashboardSettings();
+                unsubscribeDashboardSettings = null;
+            }
+            if (unsubscribeTransactions) {
+                unsubscribeTransactions();
+                unsubscribeTransactions = null;
+            }
+            if (unsubscribeRecurringTransactions) {
+                unsubscribeRecurringTransactions();
+                unsubscribeRecurringTransactions = null;
+            }
+            if (unsubscribeCategories) {
+                unsubscribeCategories();
+                unsubscribeCategories = null;
+            }
+            if (unsubscribeBudgetLimits) {
+                unsubscribeBudgetLimits();
+                unsubscribeBudgetLimits = null;
+            }
+            if (unsubscribeSavingsGoals) {
+                unsubscribeSavingsGoals();
+                unsubscribeSavingsGoals = null;
+            }
+            if (unsubscribeTransactionsForSavingsGoals) {
+                unsubscribeTransactionsForSavingsGoals();
+                unsubscribeTransactionsForSavingsGoals = null;
+            }
+            console.log("Alle Firestore-Listener wurden getrennt.");
+        }
+
 
         // --- Initialisierung und Event Listener ---
         document.addEventListener('DOMContentLoaded', () => {
@@ -2064,11 +2112,13 @@
                 if (user) {
                     currentUser = user;
                     currentUserId = user.uid;
+                    console.log("Benutzer angemeldet:", currentUserId);
 
-                    // Initialisiere dashboardSettingsDocRef und setze den Listener hier
+                    // Nur Listener initialisieren, wenn ein Benutzer angemeldet ist
                     dashboardSettingsDocRef = doc(db, `artifacts/${appId}/users/${currentUserId}/dashboardSettings`, 'userSettings');
 
-                    onSnapshot(dashboardSettingsDocRef, (docSnap) => {
+                    if (unsubscribeDashboardSettings) unsubscribeDashboardSettings(); // Sicherstellen, dass alter Listener getrennt wird
+                    unsubscribeDashboardSettings = onSnapshot(dashboardSettingsDocRef, (docSnap) => {
                         if (docSnap.exists()) {
                             dashboardSettings = docSnap.data();
                             console.log("Dashboard settings loaded/updated from Firestore:", dashboardSettings);
@@ -2083,29 +2133,20 @@
                             console.log("Initializing default dashboard settings in Firestore:", dashboardSettings);
                             setDoc(dashboardSettingsDocRef, dashboardSettings, { merge: true }).catch(e => console.error("Fehler beim Speichern der Standard-Dashboard-Einstellungen:", e));
                         }
-                        // Wichtig: Da dashboardSettings global ist, wird renderPage() oder jede andere
-                        // Funktion, die dashboardSettings verwendet, die aktualisierten Werte beim nächsten
-                        // Rendern verwenden. Ein expliziter renderPage() Aufruf hier würde zu einer
-                        // Endlosschleife führen, wenn er nicht sorgfältig behandelt wird.
-                        // Die UI-Updates der jeweiligen Seiten werden durch ihre eigenen onSnapshot-Listener
-                        // oder durch den Navigationsaufruf ausgelöst.
-                        // Für die Einstellungsseite, die die Checkboxen anzeigt, muss updateSettingsUI()
-                        // aufgerufen werden, um die UI zu aktualisieren, sobald sich dashboardSettings ändert.
-                        // Dies wird innerhalb von renderSettingsPage() durch den onSnapshot-Listener für recurringTransactions
-                        // und categories implizit ausgelöst, da updateSettingsUI() dort aufgerufen wird.
-                        // Um sicherzustellen, dass die Einstellungsseite sofort aktualisiert wird,
-                        // wenn die Einstellungen geändert werden (z.B. von einer anderen Sitzung),
-                        // könnte man hier einen expliziten Aufruf von renderPage('settings') in Betracht ziehen,
-                        // aber das könnte zu unnötigem Flackern führen.
+                        // Da dashboardSettings global ist, wird renderPage() die aktualisierten Werte verwenden.
+                        // Ein expliziter renderPage() Aufruf hier ist nicht ideal, um Flackern zu vermeiden.
                     }, (error) => {
                         console.error("Fehler beim Abrufen der Dashboard-Einstellungen:", error);
                     });
 
                     renderPage('dashboard');
                 } else {
+                    console.log("Benutzer abgemeldet.");
                     currentUser = null;
                     currentUserId = null;
-                    dashboardSettings = {};
+                    dashboardSettings = {}; // Dashboard-Einstellungen zurücksetzen
+                    currentCategories = []; // Kategorien zurücksetzen
+                    detachAllFirestoreListeners(); // Alle Listener trennen
                     renderPage('login');
                 }
                 isAuthReady = true;
@@ -2120,9 +2161,7 @@
             invoiceAnalysisBtn.addEventListener('click', () => renderPage('invoice-analysis'));
             logoutBtn.addEventListener('click', async () => {
                 await signOut(auth);
-                currentUser = null;
-                currentUserId = null;
-                renderPage('login');
+                // onAuthStateChanged wird den Rest der Logik (currentUserId null setzen, detachAllFirestoreListeners, renderPage('login')) übernehmen
             });
         });
     </script>
