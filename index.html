@@ -13,6 +13,12 @@
             font-family: 'Inter', sans-serif;
         }
         /* Removed Dark Mode specific styles */
+        canvas {
+            display: block;
+            width: 100%;
+            height: auto; /* Allow height to adjust based on aspect ratio or content */
+            max-width: 100%;
+        }
     </style>
 </head>
 <body class="min-h-screen bg-[#E7EAEF] text-gray-900 font-inter">
@@ -22,7 +28,7 @@
         <div class="container mx-auto flex flex-col sm:flex-row justify-between items-center">
             <h1 class="text-3xl font-bold mb-2 sm:mb-0">Lehrlings-Budget</h1>
             <nav class="w-full sm:w-auto">
-                <ul class="flex flex-wrap justify-center sm:justify-end gap-2 sm:space-x-4">
+                <ul id="header-nav-list" class="flex flex-wrap justify-center sm:justify-end gap-2 sm:space-x-4">
                     <li><button id="dashboard-btn" class="px-3 py-1.5 sm:px-4 sm:py-2 rounded-md text-sm sm:text-base transition-colors duration-200">Dashboard</button></li>
                     <li><button id="categories-btn" class="px-3 py-1.5 sm:px-4 sm:py-2 rounded-md text-sm sm:text-base transition-colors duration-200">Kategorien</button></li>
                     <li><button id="settings-btn" class="px-3 py-1.5 sm:px-4 sm:py-2 rounded-md text-sm sm:text-base transition-colors duration-200">Einstellungen</button></li>
@@ -53,7 +59,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, setPersistence, browserLocalPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, doc, addDoc, deleteDoc, onSnapshot, query, where, orderBy, serverTimestamp, getDocs, writeBatch, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, doc, addDoc, deleteDoc, onSnapshot, query, where, orderBy, serverTimestamp, getDocs, writeBatch, setDoc, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         // getAnalytics is not used in this app's logic, so it's removed.
         // import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js";
 
@@ -133,22 +139,35 @@
         const closeRewardModalBtn = document.getElementById('close-reward-modal');
 
         // --- Hilfsfunktionen für UI-Updates ---
-        function updateHeaderNavButtons(activePageId) {
+        function updateHeaderNavButtons(activePageId, isLoggedIn) {
             const baseBtnClasses = "px-3 py-1.5 sm:px-4 sm:py-2 rounded-md text-sm sm:text-base transition-colors duration-200";
 
             headerNavButtons.forEach(button => {
                 let currentBtnClasses = baseBtnClasses;
+                let shouldHide = false;
 
-                if (button.id.startsWith(activePageId)) {
-                    currentBtnClasses += ` ${colors.tailwind.bgCaribbeanCurrent} text-white`; // Active button color
-                } else {
-                    currentBtnClasses += ` hover:bg-[#08605F] text-white`; // Hover color for inactive buttons
+                if (!isLoggedIn) {
+                    shouldHide = true; // Hide all nav buttons if not logged in
                 }
 
                 if (button.id === 'logout-btn') {
+                    if (!isLoggedIn) {
+                        shouldHide = true; // Always hide logout if not logged in
+                    }
                     currentBtnClasses += ` ${colors.tailwind.bgRed500} ${colors.tailwind.hoverBgRed600}`;
+                } else if (isLoggedIn) { // Only apply active/hover styles if logged in
+                    if (button.id.startsWith(activePageId)) {
+                        currentBtnClasses += ` ${colors.tailwind.bgCaribbeanCurrent} text-white`; // Active button color
+                    } else {
+                        currentBtnClasses += ` hover:bg-[#08605F] text-white`; // Hover color for inactive buttons
+                    }
                 }
 
+                if (shouldHide) {
+                    button.classList.add('hidden');
+                } else {
+                    button.classList.remove('hidden');
+                }
                 button.className = currentBtnClasses;
             });
         }
@@ -210,7 +229,7 @@
         // --- Allgemeine App-Logik ---
         async function renderPage(pageName) {
             mainContent.innerHTML = ''; // Inhalt leeren
-            updateHeaderNavButtons(pageName); // Header-Buttons aktualisieren
+            updateHeaderNavButtons(pageName, currentUser !== null); // Header-Buttons aktualisieren basierend auf dem Anmeldestatus
 
             if (!currentUser && pageName !== 'login') {
                 renderLoginPage();
@@ -345,6 +364,7 @@
         // --- Dashboard-Seite ---
         async function renderDashboardPage() {
             let transactions = [];
+            let recurringTransactions = []; // Added for upcoming payments
             let newAmount = '';
             let newDescription = '';
             let newType = 'expense';
@@ -352,15 +372,190 @@
             let errorMessage = '';
             let loading = false;
             let showResetConfirmation = false;
+            let showCustomizeDashboardModal = false; // New state for customization modal
+            // Default dashboard settings
+            let dashboardSettings = {
+                showAddTransaction: true,
+                showUpcomingPayments: true,
+                showRecentTransactions: true,
+                showTopExpenses: true, // New setting
+                showExpenseTrend: true // New setting
+            };
 
             const categoriesCollectionRef = collection(db, `artifacts/${appId}/users/${currentUserId}/categories`);
             const transactionsCollectionRef = collection(db, `artifacts/${appId}/users/${currentUserId}/transactions`);
             const recurringTransactionsCollectionRef = collection(db, `artifacts/${appId}/users/${currentUserId}/recurringTransactions`);
+            const dashboardSettingsDocRef = doc(db, `artifacts/${appId}/users/${currentUserId}/dashboardSettings`, 'userSettings');
+
+
+            // Helper to calculate next due date for recurring transactions
+            function calculateNextDueDate(recurring) {
+                const today = new Date();
+                let nextDueDate = new Date();
+                nextDueDate.setHours(0, 0, 0, 0); // Normalize to start of day
+
+                if (recurring.frequency === 'monthly') {
+                    const day = recurring.recurringDay || 1; // Default to 1st if not specified
+                    nextDueDate.setDate(day);
+                    if (nextDueDate < today) {
+                        nextDueDate.setMonth(nextDueDate.getMonth() + 1);
+                        // Handle cases where next month might not have the same day (e.g., Feb 30)
+                        if (nextDueDate.getDate() !== day) {
+                            nextDueDate.setDate(0); // Set to last day of previous month
+                        }
+                    }
+                } else if (recurring.frequency === 'weekly') {
+                    // Find next occurrence of the day of the week from creation date
+                    const createdDate = recurring.createdAt ? recurring.createdAt.toDate() : new Date();
+                    const dayOfWeek = createdDate.getDay(); // 0 for Sunday, 1 for Monday, etc.
+                    let daysUntilNext = (dayOfWeek - today.getDay() + 7) % 7;
+                    if (daysUntilNext === 0 && today > createdDate) { // If today is the day, but it's already passed for this week
+                        daysUntilNext = 7;
+                    }
+                    nextDueDate.setDate(today.getDate() + daysUntilNext);
+                } else if (recurring.frequency === 'yearly') {
+                    const createdDate = recurring.createdAt ? recurring.createdAt.toDate() : new Date();
+                    nextDueDate.setMonth(createdDate.getMonth());
+                    nextDueDate.setDate(createdDate.getDate());
+                    if (nextDueDate < today) {
+                        nextDueDate.setFullYear(nextDueDate.getFullYear() + 1);
+                    }
+                }
+                return nextDueDate;
+            }
+
+            // Function to get monthly expenses for charting
+            function getMonthlyExpenses(transactionsData, numMonths = 6) {
+                const monthlyData = {};
+                const today = new Date();
+
+                // Initialize monthlyData for the last numMonths
+                for (let i = 0; i < numMonths; i++) {
+                    const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+                    const yearMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                    monthlyData[yearMonth] = 0;
+                }
+
+                transactionsData.forEach(t => {
+                    if (t.type === 'expense' && t.createdAt && t.createdAt.toDate) {
+                        const date = t.createdAt.toDate();
+                        const yearMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                        if (monthlyData.hasOwnProperty(yearMonth)) {
+                            monthlyData[yearMonth] += t.amount;
+                        }
+                    }
+                });
+
+                // Convert to array of objects for easier charting and sort by date
+                const sortedMonthlyData = Object.keys(monthlyData)
+                    .sort()
+                    .map(key => ({
+                        month: key,
+                        amount: monthlyData[key]
+                    }));
+
+                return sortedMonthlyData;
+            }
+
+            // Function to draw the bar chart
+            function drawBarChart(canvasId, data) {
+                const canvas = document.getElementById(canvasId);
+                if (!canvas) return;
+
+                const ctx = canvas.getContext('2d');
+                canvas.width = canvas.offsetWidth; // Set canvas width to its CSS width
+                canvas.height = 300; // Fixed height for consistency
+
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                const padding = 40;
+                const chartWidth = canvas.width - 2 * padding;
+                const chartHeight = canvas.height - 2 * padding;
+
+                const barWidth = chartWidth / (data.length * 1.5); // Adjust for spacing
+                const barSpacing = barWidth / 2;
+
+                const maxAmount = Math.max(...data.map(d => d.amount)) * 1.1; // 10% buffer
+                if (maxAmount === 0) { // Handle case with no expenses
+                    ctx.font = '16px Inter';
+                    ctx.fillStyle = colors.caribbeanCurrent;
+                    ctx.textAlign = 'center';
+                    ctx.fillText('Keine Ausgabendaten für den Trend verfügbar.', canvas.width / 2, canvas.height / 2);
+                    return;
+                }
+
+                // Draw Y-axis
+                ctx.beginPath();
+                ctx.moveTo(padding, padding);
+                ctx.lineTo(padding, canvas.height - padding);
+                ctx.strokeStyle = '#333';
+                ctx.stroke();
+
+                // Draw X-axis
+                ctx.beginPath();
+                ctx.moveTo(padding, canvas.height - padding);
+                ctx.lineTo(canvas.width - padding, canvas.height - padding);
+                ctx.strokeStyle = '#333';
+                ctx.stroke();
+
+                // Draw bars
+                data.forEach((item, index) => {
+                    const barHeight = (item.amount / maxAmount) * chartHeight;
+                    const x = padding + (index * (barWidth + barSpacing)) + barSpacing / 2;
+                    const y = canvas.height - padding - barHeight;
+
+                    // Bar
+                    ctx.fillStyle = colors.teal;
+                    ctx.fillRect(x, y, barWidth, barHeight);
+
+                    // Label (amount) above bar
+                    ctx.font = '12px Inter';
+                    ctx.fillStyle = '#333';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(item.amount.toFixed(2), x + barWidth / 2, y - 5);
+
+                    // X-axis label (month)
+                    ctx.font = '10px Inter';
+                    ctx.fillStyle = '#555';
+                    ctx.textAlign = 'center';
+                    const monthLabel = item.month.split('-')[1]; // Just month number
+                    ctx.fillText(monthLabel, x + barWidth / 2, canvas.height - padding + 15);
+                });
+
+                // Y-axis labels (simple max value)
+                ctx.font = '12px Inter';
+                ctx.fillStyle = '#333';
+                ctx.textAlign = 'right';
+                ctx.fillText(maxAmount.toFixed(0) + ' CHF', padding - 5, padding);
+                ctx.fillText('0 CHF', padding - 5, canvas.height - padding + 5);
+            }
+
 
             const updateDashboardUI = () => {
                 const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
                 const totalExpense = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
                 const balance = totalIncome - totalExpense;
+
+                const upcomingPayments = recurringTransactions
+                    .map(rec => ({
+                        ...rec,
+                        nextDueDate: calculateNextDueDate(rec)
+                    }))
+                    .filter(rec => {
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        const thirtyDaysFromNow = new Date();
+                        thirtyDaysFromNow.setDate(today.getDate() + 30);
+                        thirtyDaysFromNow.setHours(23, 59, 59, 999);
+                        return rec.nextDueDate >= today && rec.nextDueDate <= thirtyDaysFromNow;
+                    })
+                    .sort((a, b) => a.nextDueDate - b.nextDueDate);
+
+                // Top 5 expenses calculation
+                const top5Expenses = transactions
+                    .filter(t => t.type === 'expense')
+                    .sort((a, b) => b.amount - a.amount)
+                    .slice(0, 5);
 
                 mainContent.innerHTML = `
                     <div class="${getCardClasses()} max-w-3xl mx-auto">
@@ -389,60 +584,126 @@
                             </div>
                         </div>
 
-                        <div class="${getInnerCardClasses()}">
-                            <h3 class="${getSubtitleClasses()}">Neue Transaktion hinzufügen</h3>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                <div>
-                                    <label class="${getLabelClasses()}" for="amount">Betrag (CHF)</label>
-                                    <input type="number" id="amount" class="${getInputClasses()}" placeholder="z.B. 50.00" value="${newAmount}" ${loading ? 'disabled' : ''}>
-                                </div>
-                                <div>
-                                    <label class="${getLabelClasses()}" for="description">Beschreibung</label>
-                                    <input type="text" id="description" class="${getInputClasses()}" placeholder="z.B. Lohn Juli" value="${newDescription}" ${loading ? 'disabled' : ''}>
-                                </div>
-                                <div>
-                                    <label class="${getLabelClasses()}" for="type">Typ</label>
-                                    <select id="type" class="${getInputClasses()}" ${loading ? 'disabled' : ''}>
-                                        <option value="expense" ${newType === 'expense' ? 'selected' : ''}>Ausgabe</option>
-                                        <option value="income" ${newType === 'income' ? 'selected' : ''}>Einnahme</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="${getLabelClasses()}" for="category">Kategorie</label>
-                                    <select id="category" class="${getInputClasses()}" ${loading || currentCategories.length === 0 ? 'disabled' : ''}>
-                                        ${currentCategories.length === 0 ? `<option value="">Keine Kategorien verfügbar</option>` :
-                                            currentCategories.map(cat => `<option value="${cat.id}" ${newCategoryId === cat.id ? 'selected' : ''}>${cat.name}</option>`).join('')
-                                        }
-                                    </select>
-                                </div>
-                            </div>
-                            <button id="add-transaction-btn" class="w-full ${getButtonClasses(colors.tailwind.bgTeal, colors.tailwind.hoverBgCaribbeanCurrent)}" ${loading || currentCategories.length === 0 ? 'disabled' : ''}>
-                                ${loading ? 'Hinzufügen...' : 'Transaktion hinzufügen'}
+                        <!-- Customize Dashboard Button -->
+                        <div class="text-center mb-8">
+                            <button id="customize-dashboard-btn" class="${getButtonClasses(colors.tailwind.bgMossGreen, colors.tailwind.hoverBgCaribbeanCurrent)}">
+                                Dashboard anpassen
                             </button>
-                            ${currentCategories.length === 0 ? `<p class="text-sm text-red-500 mt-2 text-center">Bitte füge zuerst Kategorien im Reiter "Kategorien" hinzu, um Transaktionen zu erfassen.</p>` : ''}
                         </div>
 
-                        <div class="${getInnerCardClasses()}">
-                            <h3 class="${getSubtitleClasses()}">Letzte Transaktionen</h3>
-                            ${transactions.length === 0 ? `<p class="${getItalicTextClasses()}">Noch keine Transaktionen vorhanden.</p>` : `
-                                <ul class="space-y-3">
-                                    ${transactions.map(t => `
-                                        <li class="${getListItemClasses()}">
-                                            <div>
-                                                <span class="${t.type === 'income' ? getIncomeTextClasses() : getExpenseTextClasses()}">
-                                                    ${t.type === 'income' ? '+' : '-'} ${t.amount.toFixed(2)} CHF
-                                                </span>
-                                                <p class="${getSmallTextClasses()}">${t.description}</p>
-                                                <p class="${getXSmallTextClasses()}">
-                                                    Kategorie: ${currentCategories.find(cat => cat.id === t.categoryId)?.name || 'Unbekannt'}
-                                                    ${t.createdAt && t.createdAt.toDate ? ` | ${new Date(t.createdAt.toDate()).toLocaleDateString()}` : ''}
-                                                </p>
-                                            </div>
-                                        </li>
-                                    `).join('')}
-                                </ul>
-                            `}
-                        </div>
+                        ${dashboardSettings.showAddTransaction ? `
+                            <div class="${getInnerCardClasses()}">
+                                <h3 class="${getSubtitleClasses()}">Neue Transaktion hinzufügen</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                    <div>
+                                        <label class="${getLabelClasses()}" for="amount">Betrag (CHF)</label>
+                                        <input type="number" id="amount" class="${getInputClasses()}" placeholder="z.B. 50.00" value="${newAmount}" ${loading ? 'disabled' : ''}>
+                                    </div>
+                                    <div>
+                                        <label class="${getLabelClasses()}" for="description">Beschreibung</label>
+                                        <input type="text" id="description" class="${getInputClasses()}" placeholder="z.B. Lohn Juli" value="${newDescription}" ${loading ? 'disabled' : ''}>
+                                    </div>
+                                    <div>
+                                        <label class="${getLabelClasses()}" for="type">Typ</label>
+                                        <select id="type" class="${getInputClasses()}" ${loading ? 'disabled' : ''}>
+                                            <option value="expense" ${newType === 'expense' ? 'selected' : ''}>Ausgabe</option>
+                                            <option value="income" ${newType === 'income' ? 'selected' : ''}>Einnahme</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="${getLabelClasses()}" for="category">Kategorie</label>
+                                        <select id="category" class="${getInputClasses()}" ${loading || currentCategories.length === 0 ? 'disabled' : ''}>
+                                            ${currentCategories.length === 0 ? `<option value="">Keine Kategorien verfügbar</option>` :
+                                                currentCategories.map(cat => `<option value="${cat.id}" ${newCategoryId === cat.id ? 'selected' : ''}>${cat.name}</option>`).join('')
+                                            }
+                                        </select>
+                                    </div>
+                                </div>
+                                <button id="add-transaction-btn" class="w-full ${getButtonClasses(colors.tailwind.bgTeal, colors.tailwind.hoverBgCaribbeanCurrent)}" ${loading || currentCategories.length === 0 ? 'disabled' : ''}>
+                                    ${loading ? 'Hinzufügen...' : 'Transaktion hinzufügen'}
+                                </button>
+                                ${currentCategories.length === 0 ? `<p class="text-sm text-red-500 mt-2 text-center">Bitte füge zuerst Kategorien im Reiter "Kategorien" hinzu, um Transaktionen zu erfassen.</p>` : ''}
+                            </div>
+                        ` : ''}
+
+                        ${dashboardSettings.showUpcomingPayments ? `
+                            <div class="${getInnerCardClasses()}">
+                                <h3 class="${getSubtitleClasses()}">Bevorstehende wiederkehrende Zahlungen (Nächste 30 Tage)</h3>
+                                ${upcomingPayments.length === 0 ? `<p class="${getItalicTextClasses()}">Keine bevorstehenden wiederkehrenden Zahlungen.</p>` : `
+                                    <ul class="space-y-3">
+                                        ${upcomingPayments.map(t => `
+                                            <li class="${getListItemClasses()}">
+                                                <div>
+                                                    <span class="text-lg font-medium">
+                                                        ${t.name}: ${t.type === 'income' ? '+' : '-'} ${t.amount.toFixed(2)} CHF
+                                                    </span>
+                                                    <p class="${getXSmallTextClasses()}">
+                                                        Kategorie: ${currentCategories.find(cat => cat.id === t.categoryId)?.name || 'Unbekannt'} | Fällig: ${t.nextDueDate.toLocaleDateString()}
+                                                    </p>
+                                                </div>
+                                            </li>
+                                        `).join('')}
+                                    </ul>
+                                `}
+                            </div>
+                        ` : ''}
+
+                        ${dashboardSettings.showTopExpenses ? `
+                            <div class="${getInnerCardClasses()}">
+                                <h3 class="${getSubtitleClasses()}">Top 5 grösste Ausgaben</h3>
+                                ${top5Expenses.length === 0 ? `<p class="${getItalicTextClasses()}">Noch keine Ausgaben erfasst.</p>` : `
+                                    <ul class="space-y-3">
+                                        ${top5Expenses.map(t => `
+                                            <li class="${getListItemClasses()}">
+                                                <div>
+                                                    <span class="${getExpenseTextClasses()}">
+                                                        - ${t.amount.toFixed(2)} CHF
+                                                    </span>
+                                                    <p class="${getSmallTextClasses()}">${t.description}</p>
+                                                    <p class="${getXSmallTextClasses()}">
+                                                        Kategorie: ${currentCategories.find(cat => cat.id === t.categoryId)?.name || 'Unbekannt'}
+                                                        ${t.createdAt && t.createdAt.toDate ? ` | ${new Date(t.createdAt.toDate()).toLocaleDateString()}` : ''}
+                                                    </p>
+                                                </div>
+                                            </li>
+                                        `).join('')}
+                                    </ul>
+                                `}
+                            </div>
+                        ` : ''}
+
+                        ${dashboardSettings.showExpenseTrend ? `
+                            <div class="${getInnerCardClasses()}">
+                                <h3 class="${getSubtitleClasses()}">Ausgaben-Trend (Letzte 6 Monate)</h3>
+                                <div class="flex justify-center">
+                                    <canvas id="expenseTrendChart" class="w-full h-auto"></canvas>
+                                </div>
+                            </div>
+                        ` : ''}
+
+                        ${dashboardSettings.showRecentTransactions ? `
+                            <div class="${getInnerCardClasses()}">
+                                <h3 class="${getSubtitleClasses()}">Letzte Transaktionen</h3>
+                                ${transactions.length === 0 ? `<p class="${getItalicTextClasses()}">Noch keine Transaktionen vorhanden.</p>` : `
+                                    <ul class="space-y-3">
+                                        ${transactions.map(t => `
+                                            <li class="${getListItemClasses()}">
+                                                <div>
+                                                    <span class="${t.type === 'income' ? getIncomeTextClasses() : getExpenseTextClasses()}">
+                                                        ${t.type === 'income' ? '+' : '-'} ${t.amount.toFixed(2)} CHF
+                                                    </span>
+                                                    <p class="${getSmallTextClasses()}">${t.description}</p>
+                                                    <p class="${getXSmallTextClasses()}">
+                                                        Kategorie: ${currentCategories.find(cat => cat.id === t.categoryId)?.name || 'Unbekannt'}
+                                                        ${t.createdAt && t.createdAt.toDate ? ` | ${new Date(t.createdAt.toDate()).toLocaleDateString()}` : ''}
+                                                    </p>
+                                                </div>
+                                            </li>
+                                        `).join('')}
+                                    </ul>
+                                `}
+                            </div>
+                        ` : ''}
 
                         <div class="mt-6 sm:mt-8 text-center">
                             <button id="reset-dashboard-btn" class="${getButtonClasses(colors.tailwind.bgMossGreen, colors.tailwind.hoverBgCaribbeanCurrent)}" ${loading ? 'disabled' : ''}>
@@ -463,6 +724,46 @@
                                         Ja, löschen
                                     </button>
                                     <button id="cancel-reset-btn" class="${getButtonClasses('bg-gray-200', 'hover:bg-gray-300')} text-gray-800" ${loading ? 'disabled' : ''}>
+                                        Abbrechen
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    <!-- Customize Dashboard Modal -->
+                    ${showCustomizeDashboardModal ? `
+                        <div class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4">
+                            <div class="${getCardClasses()} max-w-sm w-full text-center">
+                                <h3 class="${getSubtitleClasses()} text-xl sm:text-2xl">Dashboard anpassen</h3>
+                                <p class="mb-4 text-sm sm:text-base text-gray-700">Wähle die Abschnitte, die angezeigt werden sollen:</p>
+                                <div class="flex flex-col space-y-3 mb-6 text-left">
+                                    <label class="inline-flex items-center">
+                                        <input type="checkbox" id="toggle-add-transaction" class="form-checkbox h-5 w-5 text-[#177E89] rounded" ${dashboardSettings.showAddTransaction ? 'checked' : ''}>
+                                        <span class="ml-2 text-gray-700">Neue Transaktion hinzufügen</span>
+                                    </label>
+                                    <label class="inline-flex items-center">
+                                        <input type="checkbox" id="toggle-upcoming-payments" class="form-checkbox h-5 w-5 text-[#177E89] rounded" ${dashboardSettings.showUpcomingPayments ? 'checked' : ''}>
+                                        <span class="ml-2 text-gray-700">Bevorstehende wiederkehrende Zahlungen</span>
+                                    </label>
+                                    <label class="inline-flex items-center">
+                                        <input type="checkbox" id="toggle-top-expenses" class="form-checkbox h-5 w-5 text-[#177E89] rounded" ${dashboardSettings.showTopExpenses ? 'checked' : ''}>
+                                        <span class="ml-2 text-gray-700">Top 5 grösste Ausgaben</span>
+                                    </label>
+                                    <label class="inline-flex items-center">
+                                        <input type="checkbox" id="toggle-expense-trend" class="form-checkbox h-5 w-5 text-[#177E89] rounded" ${dashboardSettings.showExpenseTrend ? 'checked' : ''}>
+                                        <span class="ml-2 text-gray-700">Ausgaben-Trend</span>
+                                    </label>
+                                    <label class="inline-flex items-center">
+                                        <input type="checkbox" id="toggle-recent-transactions" class="form-checkbox h-5 w-5 text-[#177E89] rounded" ${dashboardSettings.showRecentTransactions ? 'checked' : ''}>
+                                        <span class="ml-2 text-gray-700">Letzte Transaktionen</span>
+                                    </label>
+                                </div>
+                                <div class="flex flex-col sm:flex-row justify-center space-y-3 sm:space-y-0 sm:space-x-4">
+                                    <button id="save-customize-settings-btn" class="${getButtonClasses(colors.tailwind.bgTeal, colors.tailwind.hoverBgCaribbeanCurrent)} text-sm py-2 px-4" ${loading ? 'disabled' : ''}>
+                                        Speichern
+                                    </button>
+                                    <button id="cancel-customize-settings-btn" class="${getButtonClasses('bg-gray-200', 'hover:bg-gray-300')} text-gray-800" ${loading ? 'disabled' : ''}>
                                         Abbrechen
                                     </button>
                                 </div>
@@ -492,6 +793,50 @@
 
                 const cancelResetBtn = document.getElementById('cancel-reset-btn');
                 if (cancelResetBtn) cancelResetBtn.onclick = () => { showResetConfirmation = false; updateDashboardUI(); };
+
+                // Customize Dashboard Event Listeners
+                const customizeDashboardBtn = document.getElementById('customize-dashboard-btn');
+                if (customizeDashboardBtn) {
+                    customizeDashboardBtn.onclick = () => {
+                        showCustomizeDashboardModal = true;
+                        updateDashboardUI();
+                    };
+                }
+
+                // WICHTIG: Event-Listener für Modal-Buttons und Checkboxen
+                // Diese müssen NACHDEM das Modal im DOM ist, zugewiesen werden.
+                if (showCustomizeDashboardModal) {
+                    const saveCustomizeSettingsBtn = document.getElementById('save-customize-settings-btn');
+                    if (saveCustomizeSettingsBtn) saveCustomizeSettingsBtn.onclick = handleSaveDashboardSettings;
+
+                    const cancelCustomizeSettingsBtn = document.getElementById('cancel-customize-settings-btn');
+                    if (cancelCustomizeSettingsBtn) cancelCustomizeSettingsBtn.onclick = () => {
+                        showCustomizeDashboardModal = false;
+                        updateDashboardUI();
+                    };
+
+                    // Event-Listener für die Checkboxen im Modal
+                    const toggleAddTransaction = document.getElementById('toggle-add-transaction');
+                    if (toggleAddTransaction) toggleAddTransaction.onchange = () => { /* No direct state update here, handled by save */ };
+                    const toggleUpcomingPayments = document.getElementById('toggle-upcoming-payments');
+                    if (toggleUpcomingPayments) toggleUpcomingPayments.onchange = () => { /* No direct state update here, handled by save */ };
+                    const toggleTopExpenses = document.getElementById('toggle-top-expenses');
+                    if (toggleTopExpenses) toggleTopExpenses.onchange = () => { /* No direct state update here, handled by save */ };
+                    const toggleExpenseTrend = document.getElementById('toggle-expense-trend');
+                    if (toggleExpenseTrend) toggleExpenseTrend.onchange = () => { /* No direct state update here, handled by save */ };
+                    const toggleRecentTransactions = document.getElementById('toggle-recent-transactions');
+                    if (toggleRecentTransactions) toggleRecentTransactions.onchange = () => { /* No direct state update here, handled by save */ };
+                }
+
+
+                // Draw chart if visible
+                if (dashboardSettings.showExpenseTrend) {
+                    // Ensure the canvas element exists before drawing
+                    setTimeout(() => { // Small delay to ensure canvas is in DOM
+                        const monthlyExpenseData = getMonthlyExpenses(transactions);
+                        drawBarChart('expenseTrendChart', monthlyExpenseData);
+                    }, 0);
+                }
             };
 
             const handleAddTransaction = async () => {
@@ -557,6 +902,79 @@
                 }
             };
 
+            const handleSaveDashboardSettings = async () => {
+                loading = true;
+                errorMessage = '';
+                updateDashboardUI(); // Re-render to show loading state
+
+                // Log values before attempting to read them
+                console.log("Attempting to save dashboard settings...");
+                const toggleAddTransaction = document.getElementById('toggle-add-transaction');
+                const toggleUpcomingPayments = document.getElementById('toggle-upcoming-payments');
+                const toggleTopExpenses = document.getElementById('toggle-top-expenses');
+                const toggleExpenseTrend = document.getElementById('toggle-expense-trend');
+                const toggleRecentTransactions = document.getElementById('toggle-recent-transactions');
+
+                // Check if elements exist
+                if (!toggleAddTransaction || !toggleUpcomingPayments || !toggleTopExpenses || !toggleExpenseTrend || !toggleRecentTransactions) {
+                    console.error("One or more dashboard toggle elements not found in DOM!");
+                    errorMessage = "Fehler: Einige Dashboard-Elemente konnten nicht gefunden werden. Bitte versuchen Sie es erneut.";
+                    loading = false;
+                    updateDashboardUI();
+                    return;
+                }
+
+                const newSettings = {
+                    showAddTransaction: toggleAddTransaction.checked,
+                    showUpcomingPayments: toggleUpcomingPayments.checked,
+                    showTopExpenses: toggleTopExpenses.checked,
+                    showExpenseTrend: toggleExpenseTrend.checked,
+                    showRecentTransactions: toggleRecentTransactions.checked,
+                };
+
+                console.log("New settings to save:", newSettings);
+
+                try {
+                    await setDoc(dashboardSettingsDocRef, newSettings, { merge: true });
+                    console.log("Dashboard settings saved successfully to Firestore.");
+                    // The onSnapshot listener will update dashboardSettings and call updateDashboardUI
+                    // No need to manually update dashboardSettings here, as onSnapshot will handle it.
+                    showCustomizeDashboardModal = false; // Close modal
+                } catch (error) {
+                    console.error("Fehler beim Speichern der Dashboard-Einstellungen:", error);
+                    errorMessage = "Fehler beim Speichern der Dashboard-Einstellungen: " + error.message;
+                } finally {
+                    loading = false;
+                    updateDashboardUI(); // Final UI update (will be triggered again by onSnapshot, but this ensures immediate visual feedback)
+                }
+            };
+
+            // Listener für Dashboard-Einstellungen
+            onSnapshot(dashboardSettingsDocRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    dashboardSettings = docSnap.data();
+                    console.log("Dashboard settings loaded/updated from Firestore:", dashboardSettings);
+                } else {
+                    // Initialize default settings if no document exists
+                    dashboardSettings = {
+                        showAddTransaction: true,
+                        showUpcomingPayments: true,
+                        showRecentTransactions: true,
+                        showTopExpenses: true,
+                        showExpenseTrend: true
+                    };
+                    console.log("Initializing default dashboard settings in Firestore:", dashboardSettings);
+                    // Optionally save default settings to Firestore
+                    setDoc(dashboardSettingsDocRef, dashboardSettings, { merge: true }).catch(e => console.error("Fehler beim Speichern der Standard-Dashboard-Einstellungen:", e));
+                }
+                updateDashboardUI();
+            }, (error) => {
+                console.error("Fehler beim Abrufen der Dashboard-Einstellungen:", error);
+                errorMessage = "Fehler beim Laden der Dashboard-Einstellungen.";
+                updateDashboardUI();
+            });
+
+
             // Listener für Transaktionen
             onSnapshot(query(transactionsCollectionRef, orderBy('createdAt', 'desc')), (snapshot) => {
                 transactions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -564,6 +982,16 @@
             }, (error) => {
                 console.error("Fehler beim Abrufen der Transaktionen:", error);
                 errorMessage = "Fehler beim Laden der Transaktionen.";
+                updateDashboardUI();
+            });
+
+            // Listener für wiederkehrende Transaktionen
+            onSnapshot(query(recurringTransactionsCollectionRef), (snapshot) => {
+                recurringTransactions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                updateDashboardUI();
+            }, (error) => {
+                console.error("Fehler beim Abrufen der wiederkehrenden Transaktionen:", error);
+                errorMessage = "Fehler beim Laden der wiederkehrenden Transaktionen.";
                 updateDashboardUI();
             });
 
@@ -587,43 +1015,24 @@
                     const querySnapshot = await getDocs(q);
                     const batch = writeBatch(db);
                     const today = new Date();
-                    const currentMonth = today.getMonth();
-                    const currentYear = today.getFullYear();
-                    const currentDay = today.getDate();
+                    today.setHours(0, 0, 0, 0); // Normalize to start of day
 
                     for (const docSnapshot of querySnapshot.docs) {
                         const recurring = docSnapshot.data();
                         const recurringId = docSnapshot.id;
 
-                        let lastAppliedMonth = -1;
-                        let lastAppliedYear = -1;
-
-                        if (recurring.lastAppliedDate && recurring.lastAppliedDate.toDate) {
-                            const lastDate = recurring.lastAppliedDate.toDate();
-                            lastAppliedMonth = lastDate.getMonth();
-                            lastAppliedYear = lastDate.getFullYear();
+                        let lastAppliedDate = recurring.lastAppliedDate && recurring.lastAppliedDate.toDate ? recurring.lastAppliedDate.toDate() : null;
+                        if (lastAppliedDate) {
+                            lastAppliedDate.setHours(0, 0, 0, 0); // Normalize
                         }
+
+                        const nextDueDate = calculateNextDueDate(recurring);
 
                         let shouldAdd = false;
 
-                        if (recurring.frequency === 'monthly') {
-                            if (recurring.recurringDay && currentDay >= recurring.recurringDay) {
-                                if (lastAppliedYear < currentYear || (lastAppliedYear === currentYear && lastAppliedMonth < currentMonth)) {
-                                    shouldAdd = true;
-                                }
-                            } else if (!recurring.recurringDay) {
-                                 if (lastAppliedYear < currentYear || (lastAppliedYear === currentYear && lastAppliedMonth < currentMonth)) {
-                                    shouldAdd = true;
-                                 }
-                            }
-                        } else if (recurring.frequency === 'weekly') {
-                            const oneWeek = 7 * 24 * 60 * 60 * 1000;
-                            const lastAppliedTime = recurring.lastAppliedDate ? recurring.lastAppliedDate.toDate().getTime() : 0;
-                            if (today.getTime() - lastAppliedTime > oneWeek) {
-                                shouldAdd = true;
-                            }
-                        } else if (recurring.frequency === 'yearly') {
-                            if (lastAppliedYear < currentYear) {
+                        // Check if nextDueDate is today or in the past, AND it hasn't been applied for this period
+                        if (nextDueDate <= today) {
+                            if (!lastAppliedDate || lastAppliedDate < nextDueDate) {
                                 shouldAdd = true;
                             }
                         }
@@ -653,7 +1062,7 @@
             };
 
             addRecurringTransactions(); // Beim Laden des Dashboards ausführen
-            updateDashboardUI(); // Initialer Render
+            // Initialer Render wird durch onSnapshot für dashboardSettings ausgelöst
         }
 
         // --- Kategorien-Seite ---
@@ -1325,7 +1734,8 @@
                         createdAt: serverTimestamp(),
                         userId: currentUserId,
                         achieved: false,
-                        achievedDate: null
+                        achievedDate: null,
+                        achievedMilestones: [] // Initialize milestones array
                     });
                     newGoalName = '';
                     newGoalTargetAmount = '';
@@ -1363,16 +1773,33 @@
                     const goalDocRef = doc(db, `artifacts/${appId}/users/${currentUserId}/savingsGoals`, selectedGoalForFunds.id);
 
                     let updateData = { currentAmount: newCurrentAmount };
-                    if (newCurrentAmount >= selectedGoalForFunds.targetAmount && !selectedGoalForFunds.achieved) {
-                        updateData.achieved = true;
-                        updateData.achievedDate = serverTimestamp();
+                    let milestonesToUpdate = [...(selectedGoalForFunds.achievedMilestones || [])];
+                    let showMilestoneReward = false;
+                    let milestoneMessage = '';
+
+                    const progress = (newCurrentAmount / selectedGoalForFunds.targetAmount) * 100;
+                    const milestones = [25, 50, 75, 100];
+
+                    for (const milestone of milestones) {
+                        if (progress >= milestone && !milestonesToUpdate.includes(milestone)) {
+                            milestonesToUpdate.push(milestone);
+                            showMilestoneReward = true;
+                            if (milestone === 100) {
+                                milestoneMessage = `Herzlichen Glückwunsch! Du hast dein Sparziel "${selectedGoalForFunds.name}" erfolgreich erreicht!`;
+                                updateData.achieved = true;
+                                updateData.achievedDate = serverTimestamp();
+                            } else {
+                                milestoneMessage = `Super! Du hast ${milestone}% deines Sparziels "${selectedGoalForFunds.name}" erreicht!`;
+                            }
+                        }
                     }
+                    updateData.achievedMilestones = milestonesToUpdate;
 
                     await updateDoc(goalDocRef, updateData);
 
-                    // Belohnungs-Modal anzeigen, wenn Ziel erreicht wurde
-                    if (newCurrentAmount >= selectedGoalForFunds.targetAmount && !selectedGoalForFunds.achieved) {
-                        rewardMessage.textContent = `Herzlichen Glückwunsch! Du hast dein Sparziel "${selectedGoalForFunds.name}" erfolgreich erreicht!`;
+                    // Belohnungs-Modal anzeigen, wenn Ziel erreicht wurde oder ein Meilenstein erreicht wurde
+                    if (showMilestoneReward) {
+                        rewardMessage.textContent = milestoneMessage;
                         rewardModal.classList.remove('hidden');
                         // Event Listener für das Schliessen des Modals
                         closeRewardModalBtn.onclick = () => {
