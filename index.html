@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lehrlings-Budget</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'dark-blue': '#217074',
+                        'dark-green': '#37745B',
+                        'medium-green': '#8B9D77',
+                        'light-gray': '#E7EAEF',
+                        'light-beige': '#EDC5AB',
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            transition: background-color 0.3s ease;
+        }
+    </style>
+</head>
+<body class="min-h-screen font-inter bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors">
+    <div id="app" class="min-h-screen">
+        <!-- Header -->
+        <header id="header" class="p-4 shadow-md rounded-b-lg bg-blue-800 dark:bg-gray-800 text-white hidden">
+            <div class="container mx-auto flex flex-col sm:flex-row justify-between items-center">
+                <h1 class="text-3xl font-bold mb-2 sm:mb-0">Lehrlings-Budget</h1>
+                <nav id="nav" class="w-full sm:w-auto hidden">
+                    <ul class="flex flex-wrap justify-center sm:justify-end gap-2 sm:space-x-4">
+                        <li>
+                            <button id="dashboard-btn" class="px-3 py-1.5 sm:px-4 sm:py-2 rounded-md text-sm sm:text-base transition-colors duration-200 bg-green-700 dark:bg-green-600">
+                                Dashboard
+                            </button>
+                        </li>
+                        <li>
+                            <button id="categories-btn" class="px-3 py-1.5 sm:px-4 sm:py-2 rounded-md text-sm sm:text-base transition-colors duration-200 hover:bg-green-600 dark:hover:bg-green-700">
+                                Kategorien
+                            </button>
+                        </li>
+                        <li>
+                            <button id="settings-btn" class="px-3 py-1.5 sm:px-4 sm:py-2 rounded-md text-sm sm:text-base transition-colors duration-200 hover:bg-green-600 dark:hover:bg-green-700">
+                                Einstellungen
+                            </button>
+                        </li>
+                        <li>
+                            <button id="limits-btn" class="px-3 py-1.5 sm:px-4 sm:py-2 rounded-md text-sm sm:text-base transition-colors duration-200 hover:bg-green-600 dark:hover:bg-green-700">
+                                Budgetgrenzen
+                            </button>
+                        </li>
+                        <li>
+                            <button id="logout-btn" class="px-3 py-1.5 sm:px-4 sm:py-2 rounded-md text-sm sm:text-base bg-red-500 hover:bg-red-600 transition-colors duration-200">
+                                Abmelden
+                            </button>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="container mx-auto p-4 sm:p-6">
+            <!-- Auth Page -->
+            <div id="auth-page" class="max-w-md mx-auto p-6 sm:p-8 rounded-xl shadow-lg border bg-white dark:bg-gray-800 border-green-600 dark:border-green-700 transition-colors">
+                <h2 class="text-2xl sm:text-3xl font-bold text-center mb-6 dark:text-white" id="auth-title">Anmelden</h2>
+                <div id="auth-error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-md relative mb-4 hidden" role="alert">
+                    <strong class="font-bold">Fehler!</strong>
+                    <span id="auth-error-message" class="block sm:inline"></span>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-semibold mb-2 dark:text-gray-300" for="email">
+                        E-Mail
+                    </label>
+                    <input type="email" id="email" class="shadow appearance-none border rounded-lg w-full py-2.5 px-3 sm:py-3 sm:px-4 leading-tight focus:outline-none focus:ring-2 bg-white dark:bg-gray-700 text-gray-700 dark:text-white border-green-600 dark:border-gray-600 focus:ring-green-400 dark:focus:ring-green-500" placeholder="deine.email@example.com">
+                </div>
+                <div class="mb-6">
+                    <label class="block text-sm font-semibold mb-2 dark:text-gray-300" for="password">
+                        Passwort
+                    </label>
+                    <input type="password" id="password" class="shadow appearance-none border rounded-lg w-full py-2.5 px-3 sm:py-3 sm:px-4 mb-3 leading-tight focus:outline-none focus:ring-2 bg-white dark:bg-gray-700 text-gray-700 dark:text-white border-green-600 dark:border-gray-600 focus:ring-green-400 dark:focus:ring-green-500" placeholder="********">
+                </div>
+                
+                <!-- "Angemeldet bleiben" Checkbox -->
+                <div class="mb-4 flex items-center">
+                    <input type="checkbox" id="remember-me" class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600">
+                    <label for="remember-me" class="ml-2 block text-sm text-gray-900 dark:text-gray-300">
+                        Angemeldet bleiben
+                    </label>
+                </div>
+                
+                <div class="flex flex-col space-y-3 sm:space-y-4">
+                    <button id="login-btn" class="font-bold py-2.5 px-5 sm:py-3 sm:px-6 rounded-lg text-base sm:text-lg focus:outline-none focus:shadow-outline transition-all duration-200 transform hover:scale-105 bg-blue-800 hover:bg-green-700 text-white dark:bg-green-700 dark:hover:bg-blue-800">
+                        Anmelden
+                    </button>
+                    <button id="toggle-register-btn" class="font-bold py-2.5 px-5 sm:py-3 sm:px-6 rounded-lg text-base sm:text-lg focus:outline-none focus:shadow-outline transition-all duration-200 transform hover:scale-105 bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white">
+                        Ich habe noch kein Konto
+                    </button>
+                </div>
+            </div>
+
+            <!-- Dashboard Page -->
+            <div id="dashboard-page" class="max-w-3xl mx-auto p-6 sm:p-8 rounded-xl shadow-lg border bg-white dark:bg-gray-800 border-green-600 dark:border-green-700 hidden transition-colors">
+                <h2 class="text-2xl sm:text-3xl font-bold text-center mb-6 dark:text-white">Dein Budget-Dashboard</h2>
+
+                <div id="dashboard-error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-md relative mb-4 hidden" role="alert">
+                    <strong class="font-bold">Fehler!</strong>
+                    <span id="dashboard-error-message" class="block sm:inline"></span>
+                </div>
+
+                <!-- Budget Summary -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 text-center">
+                    <div class="p-4 rounded-lg shadow-sm bg-yellow-100 dark:bg-gray-700 text-blue-800 dark:text-yellow-200">
+                        <p class="text-lg">Einnahmen</p>
+                        <p id="total-income" class="text-2xl font-bold">0.00 CHF</p>
+                    </div>
+                    <div class="p-4 rounded-lg shadow-sm bg-red-100 dark:bg-gray-700 text-red-800 dark:text-red-300">
+                        <p class="text-lg">Ausgaben</p>
+                        <p id="total-expense" class="text-2xl font-bold">0.00 CHF</p>
+                    </div>
+                    <div class="p-4 rounded-lg shadow-sm bg-yellow-100 dark:bg-gray-700 text-green-700 dark:text-green-300" id="balance-container">
+                        <p class="text-lg">Saldo</p>
+                        <p id="balance" class="text-2xl font-bold">0.00 CHF</p>
+                    </div>
+                </div>
+
+                <!-- Add Transaction -->
+                <div class="mb-8 p-4 sm:p-6 rounded-lg border bg-gray-100 dark:bg-gray-700 border-green-600 dark:border-gray-600">
+                    <h3 class="text-xl font-semibold mb-4 text-green-700 dark:text-green-300">Neue Transaktion hinzufügen</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-semibold mb-2 dark:text-gray-300" for="amount">
+                                Betrag (CHF)
+                            </label>
+                            <input type="number" id="amount" class="shadow appearance-none border rounded-lg w-full py-2.5 px-3 sm:py-3 sm:px-4 leading-tight focus:outline-none focus:ring-2 bg-white dark:bg-gray-600 text-gray-700 dark:text-white border-green-600 dark:border-gray-500 focus:ring-green-400 dark:focus:ring-green-500" placeholder="z.B. 50.00">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2 dark:text-gray-300" for="description">
+                                Beschreibung
+                            </label>
+                            <input type="text" id="description" class="shadow appearance-none border rounded-lg w-full py-2.5 px-3 sm:py-3 sm:px-4 leading-tight focus:outline-none focus:ring-2 bg-white dark:bg-gray-600 text-gray-700 dark:text-white border-green-600 dark:border-gray-500 focus:ring-green-400 dark:focus:ring-green-500" placeholder="z.B. Lohn Juli">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2 dark:text-gray-300" for="type">
+                                Typ
+                            </label>
+                            <select id="type" class="shadow appearance-none border rounded-lg w-full py-2.5 px-3 sm:py-3 sm:px-4 leading-tight focus:outline-none focus:ring-2 bg-white dark:bg-gray-600 text-gray-700 dark:text-white border-green-600 dark:border-gray-500 focus:ring-green-400 dark:focus:ring-green-500">
+                                <option value="expense">Ausgabe</option>
+                                <option value="income">Einnahme</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2 dark:text-gray-300" for="category">
+                                Kategorie
+                            </label>
+                            <select id="category" class="shadow appearance-none border rounded-lg w-full py-2.5 px-3 sm:py-3 sm:px-4 leading-tight focus:outline-none focus:ring-2 bg-white dark:bg-gray-600 text-gray-700 dark:text-white border-green-600 dark:border-gray-500 focus:ring-green-400 dark:focus:ring-green-500">
+                                <option value="">Keine Kategorien verfügbar</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button id="add-transaction-btn" class="w-full font-bold py-2.5 px-5 sm:py-3 sm:px-6 rounded-lg text-base sm:text-lg focus:outline-none focus:shadow-outline transition-all duration-200 transform hover:scale-105 bg-green-700 hover:bg-blue-800 text-white dark:bg-blue-800 dark:hover:bg-green-700">
+                        Transaktion hinzufügen
+                    </button>
+                    <p id="no-categories-message" class="text-sm text-red-500 dark:text-red-400 mt-2 text-center hidden">
+                        Bitte füge zuerst Kategorien im Reiter "Kategorien" hinzu, um Transaktionen zu erfassen.
+                    </p>
+                </div>
+
+                <!-- Recent Transactions -->
+                <div class="p-4 sm:p-6 rounded-lg border bg-gray-100 dark:bg-gray-700 border-green-600 dark:border-gray-600">
+                    <h3 class="text-xl font-semibold mb-4 text-green-700 dark:text-green-300">Letzte Transaktionen</h3>
+                    <div id="transactions-list">
+                        <p class="italic text-gray-600 dark:text-gray-400">Noch keine Transaktionen vorhanden.</p>
+                    </div>
+                </div>
+
+                <!-- Reset Dashboard Button -->
+                <div class="mt-6 sm:mt-8 text-center">
+                    <button id="reset-dashboard-btn" class="font-bold py-2.5 px-5 sm:py-3 sm:px-6 rounded-lg text-base sm:text-lg focus:outline-none focus:shadow-outline transition-all duration-200 transform hover:scale-105 bg-green-600 hover:bg-green-700 text-white dark:bg-green-700 dark:hover:bg-green-800">
+                        Dashboard zurücksetzen
+                    </button>
+                </div>
+
+                <!-- Reset Confirmation Modal -->
+                <div id="reset-confirmation-modal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4 hidden">
+                    <div class="p-6 sm:p-8 rounded-xl shadow-2xl border max-w-sm sm:max-w-md w-full text-center bg-white dark:bg-gray-800 border-green-700 dark:border-green-600">
+                        <h3 class="text-xl sm:text-2xl font-bold mb-4 dark:text-white">Dashboard zurücksetzen?</h3>
+                        <p class="mb-5 sm:mb-6 text-sm sm:text-base dark:text-gray-300">
+                            Bist du sicher, dass du alle deine Transaktionen löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden.
+                        </p>
+                        <div class="flex flex-col sm:flex-row justify-center space-y-3 sm:space-y-0 sm:space-x-4">
+                            <button id="confirm-reset-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 sm:py-2.5 sm:px-5 rounded-lg text-sm sm:text-base focus:outline-none focus:shadow-outline transition-all duration-200">
+                                Ja, löschen
+                            </button>
+                            <button id="cancel-reset-btn" class="font-bold py-2 px-4 sm:py-2.5 sm:px-5 rounded-lg text-sm sm:text-base focus:outline-none focus:shadow-outline transition-all duration-200 bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white">
+                                Abbrechen
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Categories Page -->
+            <div id="categories-page" class="max-w-2xl mx-auto p-6 sm:p-8 rounded-xl shadow-lg border bg-white dark:bg-gray-800 border-green-600 dark:border-green-700 hidden transition-colors">
+                <h2 class="text-2xl sm:text-3xl font-bold text-center mb-6 dark:text-white">Kategorien verwalten</h2>
+
+                <div id="categories-error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-md relative mb-4 hidden" role="alert">
+                    <strong class="font-bold">Fehler!</strong>
+                    <span id="categories-error-message" class="block sm:inline"></span>
+                </div>
+
+                <!-- Add Category -->
+                <div class="mb-8 p-4 sm:p-6 rounded-lg border bg-gray-100 dark:bg-gray-700 border-green-600 dark:border-gray-600">
+                    <h3 class="text-xl font-semibold mb-4 text-green-700 dark:text-green-300">Neue Kategorie hinzufügen</h3>
+                    <div class="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                        <input type="text" id="new-category-name" class="flex-grow shadow appearance-none border rounded-lg py-2.5 px-3 sm:py-3 sm:px-4 leading-tight focus:outline-none focus:ring-2 bg-white dark:bg-gray-600 text-gray-800 dark:text-white border-green-600 dark:border-gray-500 focus:ring-green-400 dark:focus:ring-green-500" placeholder="Name der neuen Kategorie">
+                        <button id="add-category-btn" class="font-bold py-2.5 px-5 sm:py-3 sm:px-6 rounded-lg text-base sm:text-lg focus:outline-none focus:shadow-outline transition-all duration-200 transform hover:scale-105 bg-green-700 hover:bg-blue-800 text-white dark:bg-blue-800 dark:hover:bg-green-700">
+                            Hinzufügen
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Existing Categories -->
+                <div class="p-4 sm:p-6 rounded-lg border bg-gray-100 dark:bg-gray-700 border-green-600 dark:border-gray-600">
+                    <h3 class="text-xl font-semibold mb-4 text-green-700 dark:text-green-300">Deine Kategorien</h3>
+                    <div id="categories-list">
+                        <p class="italic text-gray-600 dark:text-gray-400">Noch keine Kategorien vorhanden. Füge eine hinzu!</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Page -->
+            <div id="settings-page" class="max-w-3xl mx-auto p-6 sm:p-8 rounded-xl shadow-lg border bg-white dark:bg-gray-800 border-green-600 dark:border-green-700 hidden transition-colors">
+                <h2 class="text-2xl sm:text-3xl font-bold text-center mb-6 dark:text-white">Einstellungen für wiederkehrende Transaktionen</h2>
+
+                <div id="settings-error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-md relative mb-4 hidden" role="alert">
+                    <strong class="font-bold">Fehler!</strong>
+                    <span id="settings-error-message" class="block sm:inline"></span>
+                </div>
+
+                <!-- Add Recurring Transaction -->
+                <div class="mb-8 p-4 sm:p-6 rounded-lg border bg-gray-100 dark:bg-gray-700 border-green-600 dark:border-gray-600">
+                    <h3 class="text-xl font-semibold mb-4 text-green-700 dark:text-green-300">Neue wiederkehrende Transaktion hinzufügen</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-semibold mb-2 dark:text-gray-300" for="recurring-name">
+                                Name
+                            </label>
+                            <input type="text" id="recurring-name" class="shadow appearance-none border rounded-lg w-full py-2.5 px-3 sm:py-3 sm:px-4 leading-tight focus:outline-none focus:ring-2 bg-white dark:bg-gray-600 text-gray-700 dark:text-white border-green-600 dark:border-gray-500 focus:ring-green-400 dark:focus:ring-green-500" placeholder="z.B. Handy Abo">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2 dark:text-gray-300" for="recurring-amount">
+                                Betrag (CHF)
+                            </label>
+                            <input type="number" id="recurring-amount" class="shadow appearance-none border rounded-lg w-full py-2.5 px-3 sm:py-3 sm:px-4 leading-tight focus:outline-none focus:ring-2 bg-white dark:bg-gray-600 text-gray-700 dark:text-white border-green-600 dark:border-gray-500 focus:ring-green-400 dark:focus:ring-green-500" placeholder="z.B. 49.90">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2 dark:text-gray-300" for="recurring-type">
+                                Typ
+                            </label>
+                            <select id="recurring-type" class="shadow appearance-none border rounded-lg w-full py-2.5 px-3 sm:py-3 sm:px-4 leading-tight focus:outline-none focus:ring-2 bg-white dark:bg-gray-600 text-gray-700 dark:text-white border-green-600 dark:border-gray-500 focus:ring-green-400 dark:focus:ring-green-500">
+                                <option value="expense">Ausgabe</option>
+                                <option value="income">Einnahme</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2 dark:text-gray-300" for="recurring-category">
+                                Kategorie
+                            </label>
+                            <select id="recurring-category" class="shadow appearance-none border rounded-lg w-full py-2.5 px-3 sm:py-3 sm:px-4 leading-tight focus:outline-none focus:ring-2 bg-white dark:bg-gray-600 text-gray-700 dark:text-white border-green-600 dark:border-gray-500 focus:ring-green-400 dark:focus:ring-green-500">
+                                <option value="">Keine Kategorien verfügbar</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2 dark:text-gray-300" for="frequency">
+                                Häufigkeit
+                            </label>
+                            <select id="frequency" class="shadow appearance-none border rounded-lg w-full py-2.5 px-3 sm:py-3 sm:px-4 leading-tight focus:outline-none focus:ring-2 bg-white dark:bg-gray-600 text-gray-700 dark:text-white border-green-600 dark:border-gray-500 focus:ring-green-400 dark:focus:ring-green-500">
+                                <option value="monthly">Monatlich</option>
+                                <option value="weekly">Wöchentlich</option>
+                                <option value="yearly">Jährlich</option>
+                            </select>
+                        </div>
+                        <div id="recurring-day-container" class="hidden">
+                            <label class="block text-sm font-semibold mb-2 dark:text-gray-300" for="recurring-day">
+                                Monatlicher Zahltag (Tag des Monats)
+                            </label>
+                            <input type="number" id="recurring-day" class="shadow appearance-none border rounded-lg w-full py-2.5 px-3 sm:py-3 sm:px-4 leading-tight focus:outline-none focus:ring-2 bg-white dark:bg-gray-600 text-gray-700 dark:text-white border-green-600 dark:border-gray-500 focus:ring-green-400 dark:focus:ring-green-500" placeholder="z.B. 25" min="1" max="31">
+                        </div>
+                    </div>
+                    <button id="add-recurring-btn" class="w-full font-bold py-2.5 px-5 sm:py-3 sm:px-6 rounded-lg text-base sm:text-lg focus:outline-none focus:shadow-outline transition-all duration-200 transform hover:scale-105 bg-green-700 hover:bg-blue-800 text-white dark:bg-blue-800 dark:hover:bg-green-700">
+                        Wiederkehrende Transaktion hinzufügen
+                    </button>
+                    <p id="no-categories-recurring-message" class="text-sm text-red-500 dark:text-red-400 mt-2 text-center hidden">
+                        Bitte füge zuerst Kategorien im Reiter "Kategorien" hinzu, um wiederkehrende Transaktionen zu erfassen.
+                    </p>
+                </div>
+
+                <!-- Recurring Transactions List -->
+                <div class="p-4 sm:p-6 rounded-lg border bg-gray-100 dark:bg-gray-700 border-green-600 dark:border-gray-600">
+                    <h3 class="text-xl font-semibold mb-4 text-green-700 dark:text-green-300">Deine wiederkehrenden Transaktionen</h3>
+                    <div id="recurring-transactions-list">
+                        <p class="italic text-gray-600 dark:text-gray-400">Noch keine wiederkehrenden Transaktionen vorhanden.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Budget Limits Page -->
+            <div id="limits-page" class="max-w-3xl mx-auto p-6 sm:p-8 rounded-xl shadow-lg border bg-white dark:bg-gray-800 border-green-600 dark:border-green-700 hidden transition-colors">
+                <h2 class="text-2xl sm:text-3xl font-bold text-center mb-6 dark:text-white">Budgetgrenzen verwalten</h2>
+
+                <div id="limits-error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-md relative mb-4 hidden" role="alert">
+                    <strong class="font-bold">Fehler!</strong>
+                    <span id="limits-error-message" class="block sm:inline"></span>
+                </div>
+
+                <!-- Set Budget Limit -->
+                <div class="mb-8 p-4 sm:p-6 rounded-lg border bg-gray-100 dark:bg-gray-700 border-green-600 dark:border-gray-600">
+                    <h3 class="text-xl font-semibold mb-4 text-green-700 dark:text-green-300">Budgetgrenze festlegen</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-semibold mb-2 dark:text-gray-300" for="limit-category">
+                                Kategorie
+                            </label>
+                            <select id="limit-category" class="shadow appearance-none border rounded-lg w-full py-2.5 px-3 sm:py-3 sm:px-4 leading-tight focus:outline-none focus:ring-2 bg-white dark:bg-gray-600 text-gray-700 dark:text-white border-green-600 dark:border-gray-500 focus:ring-green-400 dark:focus:ring-green-500">
+                                <option value="">Keine Kategorien verfügbar</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2 dark:text-gray-300" for="limit-amount">
+                                Grenze (CHF)
+                            </label>
+                            <input type="number" id="limit-amount" class="shadow appearance-none border rounded-lg w-full py-2.5 px-3 sm:py-3 sm:px-4 leading-tight focus:outline-none focus:ring-2 bg-white dark:bg-gray-600 text-gray-700 dark:text-white border-green-600 dark:border-gray-500 focus:ring-green-400 dark:focus:ring-green-500" placeholder="z.B. 200.00">
+                        </div>
+                    </div>
+                    <button id="set-limit-btn" class="w-full font-bold py-2.5 px-5 sm:py-3 sm:px-6 rounded-lg text-base sm:text-lg focus:outline-none focus:shadow-outline transition-all duration-200 transform hover:scale-105 bg-green-700 hover:bg-blue-800 text-white dark:bg-blue-800 dark:hover:bg-green-700">
+                        Grenze festlegen
+                    </button>
+                    <p id="no-categories-limits-message" class="text-sm text-red-500 dark:text-red-400 mt-2 text-center hidden">
+                        Bitte füge zuerst Kategorien im Reiter "Kategorien" hinzu, um Budgetgrenzen festzulegen.
+                    </p>
+                </div>
+
+                <!-- Budget Limits List -->
+                <div class="p-4 sm:p-6 rounded-lg border bg-gray-100 dark:bg-gray-700 border-green-600 dark:border-gray-600">
+                    <h3 class="text-xl font-semibold mb-4 text-green-700 dark:text-green-300">Deine Budgetgrenzen</h3>
+                    <div id="budget-limits-list">
+                        <p class="italic text-gray-600 dark:text-gray-400">Noch keine Budgetgrenzen festgelegt.</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Dark Mode Button -->
+        <button id="dark-mode-btn" class="fixed bottom-4 right-4 p-3 rounded-full shadow-lg transition-colors duration-300 bg-blue-800 text-white hover:bg-green-700 dark:bg-green-700 dark:hover:bg-blue-800 hidden" aria-label="Toggle Dark Mode">
+            <svg id="dark-mode-icon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+            </svg>
+        </button>
+    </div>
+
+    <script>
+        // Firebase Konfiguration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBX_aHaadvBz08hcVUz-_qLVP0a16N3R3s",
+            authDomain: "budgettierung-lehre.firebaseapp.com",
+            projectId: "budgettierung-lehre",
+            storageBucket: "budgettierung-lehre.appspot.com",
+            messagingSenderId: "993511841399",
+            appId: "1:993511841399:web:811a030fa95465af20b072",
+            measurementId: "G-M2MV5B2SDT"
+        };
+
+        // Firebase initialisieren
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const appId = firebaseConfig.appId || 'default-app-id';
+
+        // App State
+        let currentUser = null;
+        let userId = null;
+        let isRegistering = false;
+        let darkMode = false;
+        let rememberMe = false;
+
+        // DOM Elemente
+        const header = document.getElementById('header');
+        const nav = document.getElementById('nav');
+        const authPage = document.getElementById('auth-page');
+        const dashboardPage = document.getElementById('dashboard-page');
+        const categoriesPage = document.getElementById('categories-page');
+        const settingsPage = document.getElementById('settings-page');
+        const limitsPage = document.getElementById('limits-page');
+        const darkModeBtn = document.getElementById('dark-mode-btn');
+        const darkModeIcon = document.getElementById('dark-mode-icon');
+        const rememberMeCheckbox = document.getElementById('remember-me');
+        const authTitle = document.getElementById('auth-title');
+
+        // Auth Elements
+        const authError = document.getElementById('auth-error');
+        const authErrorMessage = document.getElementById('auth-error-message');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const loginBtn = document.getElementById('login-btn');
+        const toggleRegisterBtn = document.getElementById('toggle-register-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+
+        // Dashboard Elements
+        const dashboardError = document.getElementById('dashboard-error');
+        const dashboardErrorMessage = document.getElementById('dashboard-error-message');
+        const amountInput = document.getElementById('amount');
+        const descriptionInput = document.getElementById('description');
+        const typeSelect = document.getElementById('type');
+        const categorySelect = document.getElementById('category');
+        const addTransactionBtn = document.getElementById('add-transaction-btn');
+        const noCategoriesMessage = document.getElementById('no-categories-message');
+        const transactionsList = document.getElementById('transactions-list');
+        const totalIncomeElement = document.getElementById('total-income');
+        const totalExpenseElement = document.getElementById('total-expense');
+        const balanceElement = document.getElementById('balance');
+        const balanceContainer = document.getElementById('balance-container');
+        const resetDashboardBtn = document.getElementById('reset-dashboard-btn');
+        const resetConfirmationModal = document.getElementById('reset-confirmation-modal');
+        const confirmResetBtn = document.getElementById('confirm-reset-btn');
+        const cancelResetBtn = document.getElementById('cancel-reset-btn');
+
+        // Categories Elements
+        const categoriesError = document.getElementById('categories-error');
+        const categoriesErrorMessage = document.getElementById('categories-error-message');
+        const newCategoryNameInput = document.getElementById('new-category-name');
+        const addCategoryBtn = document.getElementById('add-category-btn');
+        const categoriesList = document.getElementById('categories-list');
+
+        // Settings Elements
+        const settingsError = document.getElementById('settings-error');
+        const settingsErrorMessage = document.getElementById('settings-error-message');
+        const recurringNameInput = document.getElementById('recurring-name');
+        const recurringAmountInput = document.getElementById('recurring-amount');
+        const recurringTypeSelect = document.getElementById('recurring-type');
+        const recurringCategorySelect = document.getElementById('recurring-category');
+        const frequencySelect = document.getElementById('frequency');
+        const recurringDayContainer = document.getElementById('recurring-day-container');
+        const recurringDayInput = document.getElementById('recurring-day');
+        const addRecurringBtn = document.getElementById('add-recurring-btn');
+        const noCategoriesRecurringMessage = document.getElementById('no-categories-recurring-message');
+        const recurringTransactionsList = document.getElementById('recurring-transactions-list');
+
+        // Limits Elements
+        const limitsError = document.getElementById('limits-error');
+        const limitsErrorMessage = document.getElementById('limits-error-message');
+        const limitCategorySelect = document.getElementById('limit-category');
+        const limitAmountInput = document.getElementById('limit-amount');
+        const setLimitBtn = document.getElementById('set-limit-btn');
+        const noCategoriesLimitsMessage = document.getElementById('no-categories-limits-message');
+        const budgetLimitsList = document.getElementById('budget-limits-list');
+
+        // Navigation Buttons
+        const dashboardBtn = document.getElementById('dashboard-btn');
+        const categoriesBtn = document.getElementById('categories-btn');
+        const settingsBtn = document.getElementById('settings-btn');
+        const limitsBtn = document.getElementById('limits-btn');
+
+        // Event Listeners
+        loginBtn.addEventListener('click', handleLogin);
+        toggleRegisterBtn.addEventListener('click', toggleRegister);
+        logoutBtn.addEventListener('click', handleLogout);
+        addTransactionBtn.addEventListener('click', addTransaction);
+        resetDashboardBtn.addEventListener('click', showResetConfirmation);
+        confirmResetBtn.addEventListener('click', resetDashboard);
+        cancelResetBtn.addEventListener('click', hideResetConfirmation);
+        addCategoryBtn.addEventListener('click', addCategory);
+        addRecurringBtn.addEventListener('click', addRecurringTransaction);
+        setLimitBtn.addEventListener('click', setBudgetLimit);
+        dashboardBtn.addEventListener('click', () => showPage('dashboard'));
+        categoriesBtn.addEventListener('click', () => showPage('categories'));
+        settingsBtn.addEventListener('click', () => showPage('settings'));
+        limitsBtn.addEventListener('click', () => showPage('limits'));
+        darkModeBtn.addEventListener('click', toggleDarkMode);
+        rememberMeCheckbox.addEventListener('change', function() {
+            rememberMe = this.checked;
+        });
+        recurringTypeSelect.addEventListener('change', updateRecurringDayVisibility);
+        frequencySelect.addEventListener('change', updateRecurringDayVisibility);
+
+        // Initialisierung
+        initApp();
+
+        function initApp() {
+            // Dark Mode aus localStorage laden
+            const savedDarkMode = localStorage.getItem('darkMode') === 'true';
+            if (savedDarkMode) {
+                document.documentElement.classList.add('dark');
+                darkMode = true;
+                updateDarkModeButton();
+            }
+
+            // Firebase Auth State Listener
+            auth.onAuthStateChanged(user => {
+                if (user) {
+                    // User ist angemeldet
+                    currentUser = user;
+                    userId = user.uid;
+                    header.classList.remove('hidden');
+                    nav.classList.remove('hidden');
+                    darkModeBtn.classList.remove('hidden');
+                    showPage('dashboard');
+                    loadCategories();
+                    loadTransactions();
+                    loadRecurringTransactions();
+                    loadBudgetLimits();
+                } else {
+                    // User ist abgemeldet
+                    currentUser = null;
+                    userId = null;
+                    header.classList.add('hidden');
+                    nav.classList.add('hidden');
+                    darkModeBtn.classList.add('hidden');
+                    showPage('auth');
+                }
+            });
+        }
+
+        function showPage(page) {
+            // Alle Seiten verstecken
+            authPage.classList.add('hidden');
+            dashboardPage.classList.add('hidden');
+            categoriesPage.classList.add('hidden');
+            settingsPage.classList.add('hidden');
+            limitsPage.classList.add('hidden');
+
+            // Aktiven Button zurücksetzen
+            document.querySelectorAll('#nav button').forEach(btn => {
+                btn.classList.remove('bg-green-700', 'dark:bg-green-600');
+                btn.classList.add('hover:bg-green-600', 'dark:hover:bg-green-700');
+            });
+
+            // Gewählte Seite anzeigen und aktiven Button markieren
+            switch (page) {
+                case 'auth':
+                    authPage.classList.remove('hidden');
+                    break;
+                case 'dashboard':
+                    dashboardPage.classList.remove('hidden');
+                    dashboardBtn.classList.add('bg-green-700', 'dark:bg-green-600');
+                    dashboardBtn.classList.remove('hover:bg-green-600', 'dark:hover:bg-green-700');
+                    break;
+                case 'categories':
+                    categoriesPage.classList.remove('hidden');
+                    categoriesBtn.classList.add('bg-green-700', 'dark:bg-green-600');
+                    categoriesBtn.classList.remove('hover:bg-green-600', 'dark:hover:bg-green-700');
+                    break;
+                case 'settings':
+                    settingsPage.classList.remove('hidden');
+                    settingsBtn.classList.add('bg-green-700', 'dark:bg-green-600');
+                    settingsBtn.classList.remove('hover:bg-green-600', 'dark:hover:bg-green-700');
+                    break;
+                case 'limits':
+                    limitsPage.classList.remove('hidden');
+                    limitsBtn.classList.add('bg-green-700', 'dark:bg-green-600');
+                    limitsBtn.classList.remove('hover:bg-green-600', 'dark:hover:bg-green-700');
+                    break;
+            }
+        }
+
+        function toggleRegister() {
+            isRegistering = !isRegistering;
+            if (isRegistering) {
+                loginBtn.textContent = 'Registrieren';
+                toggleRegisterBtn.textContent = 'Ich habe bereits ein Konto';
+                authTitle.textContent = 'Registrieren';
+            } else {
+                loginBtn.textContent = 'Anmelden';
+                toggleRegisterBtn.textContent = 'Ich habe noch kein Konto';
+                authTitle.textContent = 'Anmelden';
+            }
+        }
+
+        async function handleLogin() {
+            const email = emailInput.value;
+            const password = passwordInput.value;
+
+            if (!email || !password) {
+                showError('auth', 'Bitte E-Mail und Passwort eingeben.');
+                return;
+            }
+
+            try {
+                if (isRegistering) {
+                    await auth.createUserWithEmailAndPassword(email, password);
+                } else {
+                    // Persistenz basierend auf Checkbox setzen
+                    const persistence = rememberMe ? 
+                        firebase.auth.Auth.Persistence.LOCAL : 
+                        firebase.auth.Auth.Persistence.SESSION;
+                    
+                    await auth.setPersistence(persistence);
+                    await auth.signInWithEmailAndPassword(email, password);
+                }
+                
+                // Formular zurücksetzen
+                emailInput.value = '';
+                passwordInput.value = '';
+                authError.classList.add('hidden');
+            } catch (error) {
+                console.error("Auth Fehler:", error);
+                let msg = "Ein unbekannter Fehler ist aufgetreten.";
+                if (error.code === 'auth/invalid-email') {
+                    msg = "Ungültige E-Mail-Adresse.";
+                } else if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                    msg = "E-Mail oder Passwort ist falsch.";
+                } else if (error.code === 'auth/email-already-in-use') {
+                    msg = "Diese E-Mail-Adresse wird bereits verwendet.";
+                } else if (error.code === 'auth/weak-password') {
+                    msg = "Das Passwort ist zu schwach (mind. 6 Zeichen).";
+                }
+                showError('auth', msg);
+            }
+        }
+
+        async function handleLogout() {
+            try {
+                await auth.signOut();
+            } catch (error) {
+                console.error("Fehler beim Abmelden:", error);
+            }
+        }
+
+        function showError(context, message) {
+            let errorElement, errorMessageElement;
+            
+            switch (context) {
+                case 'auth':
+                    errorElement = authError;
+                    errorMessageElement = authErrorMessage;
+                    break;
+                case 'dashboard':
+                    errorElement = dashboardError;
+                    errorMessageElement = dashboardErrorMessage;
+                    break;
+                case 'categories':
+                    errorElement = categoriesError;
+                    errorMessageElement = categoriesErrorMessage;
+                    break;
+                case 'settings':
+                    errorElement = settingsError;
+                    errorMessageElement = settingsErrorMessage;
+                    break;
+                case 'limits':
+                    errorElement = limitsError;
+                    errorMessageElement = limitsErrorMessage;
+                    break;
+                default:
+                    return;
+            }
+            
+            errorMessageElement.textContent = message;
+            errorElement.classList.remove('hidden');
+            
+            // Fehler nach 5 Sekunden ausblenden
+            setTimeout(() => {
+                errorElement.classList.add('hidden');
+            }, 5000);
+        }
+
+        async function loadCategories() {
+            if (!userId) return;
+
+            const categoriesCollection = db.collection(`artifacts/${appId}/users/${userId}/categories`);
+            
+            categoriesCollection.orderBy('createdAt').onSnapshot(snapshot => {
+                const categories = [];
+                snapshot.forEach(doc => {
+                    categories.push({
+                        id: doc.id,
+                        ...doc.data()
+                    });
+                });
+
+                // Kategorie-Auswahlfelder aktualisieren
+                updateCategorySelects(categories);
+
+                // "Keine Kategorien"-Meldung anzeigen/verstecken
+                if (categories.length === 0) {
+                    noCategoriesMessage.classList.remove('hidden');
+                    noCategoriesRecurringMessage.classList.remove('hidden');
+                    noCategoriesLimitsMessage.classList.remove('hidden');
+                } else {
+                    noCategoriesMessage.classList.add('hidden');
+                    noCategoriesRecurringMessage.classList.add('hidden');
+                    noCategoriesLimitsMessage.classList.add('hidden');
+                }
+
+                // Kategorienliste aktualisieren
+                renderCategoriesList(categories);
+            }, error => {
+                console.error("Fehler beim Laden der Kategorien:", error);
+                showError('categories', "Fehler beim Laden der Kategorien.");
+            });
+        }
+
+        function updateCategorySelects(categories) {
+            // Alle Auswahlfelder leeren
+            categorySelect.innerHTML = '';
+            recurringCategorySelect.innerHTML = '';
+            limitCategorySelect.innerHTML = '<option value="">Kategorie auswählen</option>';
+
+            if (categories.length === 0) {
+                categorySelect.innerHTML = '<option value="">Keine Kategorien verfügbar</option>';
+                recurringCategorySelect.innerHTML = '<option value="">Keine Kategorien verfügbar</option>';
+                return;
+            }
+
+            // Optionen zu jedem Auswahlfeld hinzufügen
+            categories.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category.id;
+                option.textContent = category.name;
+                categorySelect.appendChild(option.cloneNode(true));
+                recurringCategorySelect.appendChild(option.cloneNode(true));
+                
+                const limitOption = option.cloneNode(true);
+                limitCategorySelect.appendChild(limitOption);
+            });
+        }
+
+        function renderCategoriesList(categories) {
+            if (categories.length === 0) {
+                categoriesList.innerHTML = '<p class="italic text-gray-600 dark:text-gray-400">Noch keine Kategorien vorhanden. Füge eine hinzu!</p>';
+                return;
+            }
+
+            categoriesList.innerHTML = '';
+            categories.forEach(category => {
+                const li = document.createElement('li');
+                li.className = 'flex items-center justify-between p-4 rounded-md shadow-sm border bg-yellow-100 dark:bg-gray-600 border-green-600 dark:border-gray-500';
+                
+                const div = document.createElement('div');
+                div.className = 'flex items-center';
+                
+                const span = document.createElement('span');
+                span.className = 'text-lg font-medium dark:text-white';
+                span.textContent = category.name;
+                
+                const button = document.createElement('button');
+                button.className = 'bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg text-sm focus:outline-none focus:shadow-outline transition-all duration-200 transform hover:scale-105';
+                button.textContent = 'Löschen';
+                button.addEventListener('click', () => deleteCategory(category.id));
+                
+                div.appendChild(span);
+                li.appendChild(div);
+                li.appendChild(button);
+                categoriesList.appendChild(li);
+            });
+        }
+
+        async function addCategory() {
+            const name = newCategoryNameInput.value.trim();
+            
+            if (!name) {
+                showError('categories', 'Der Kategoriename darf nicht leer sein.');
+                return;
+            }
+
+            try {
+                await db.collection(`artifacts/${appId}/users/${userId}/categories`).add({
+                    name,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    userId
+                });
+                newCategoryNameInput.value = '';
+            } catch (error) {
+                console.error("Fehler beim Hinzufügen der Kategorie:", error);
+                showError('categories', "Fehler beim Hinzufügen der Kategorie.");
+            }
+        }
+
+        async function deleteCategory(categoryId) {
+            try {
+                await db.doc(`artifacts/${appId}/users/${userId}/categories/${categoryId}`).delete();
+            } catch (error) {
+                console.error("Fehler beim Löschen der Kategorie:", error);
+                showError('categories', "Fehler beim Löschen der Kategorie.");
+            }
+        }
+
+        async function loadTransactions() {
+            if (!userId) return;
+
+            const transactionsCollection = db.collection(`artifacts/${appId}/users/${userId}/transactions`);
+            
+            transactionsCollection.orderBy('createdAt', 'desc').onSnapshot(snapshot => {
+                const transactions = [];
+                snapshot.forEach(doc => {
+                    transactions.push({
+                        id: doc.id,
+                        ...doc.data()
+                    });
+                });
+
+                // Transaktionsliste aktualisieren
+                renderTransactionsList(transactions);
+
+                // Summen berechnen
+                calculateTotals(transactions);
+            }, error => {
+                console.error("Fehler beim Laden der Transaktionen:", error);
+                showError('dashboard', "Fehler beim Laden der Transaktionen.");
+            });
+        }
+
+        function renderTransactionsList(transactions) {
+            if (transactions.length === 0) {
+                transactionsList.innerHTML = '<p class="italic text-gray-600 dark:text-gray-400">Noch keine Transaktionen vorhanden.</p>';
+                return;
+            }
+
+            transactionsList.innerHTML = '';
+            transactions.forEach(transaction => {
+                const li = document.createElement('li');
+                li.className = 'flex items-center justify-between p-4 rounded-md shadow-sm border bg-yellow-100 dark:bg-gray-600 border-green-600 dark:border-gray-500';
+                
+                const div = document.createElement('div');
+                
+                const amountSpan = document.createElement('span');
+                amountSpan.className = `text-lg font-medium ${transaction.type === 'income' ? 'text-green-700 dark:text-green-300' : 'text-red-600 dark:text-red-300'}`;
+                amountSpan.textContent = `${transaction.type === 'income' ? '+' : '-'} ${transaction.amount.toFixed(2)} CHF`;
+                
+                const descP = document.createElement('p');
+                descP.className = 'text-sm text-gray-700 dark:text-gray-300';
+                descP.textContent = transaction.description;
+                
+                const detailsP = document.createElement('p');
+                detailsP.className = 'text-xs text-gray-500 dark:text-gray-400';
+                
+                // Kategoriename anzeigen (wenn Kategorien geladen sind)
+                const categoryName = document.querySelector(`#category option[value="${transaction.categoryId}"]`)?.textContent || transaction.categoryId;
+                detailsP.textContent = `Kategorie: ${categoryName} | ${transaction.createdAt?.toDate().toLocaleDateString() || ''}`;
+                
+                div.appendChild(amountSpan);
+                div.appendChild(descP);
+                div.appendChild(detailsP);
+                li.appendChild(div);
+                
+                transactionsList.appendChild(li);
+            });
+        }
+
+        function calculateTotals(transactions) {
+            const totalIncome = transactions
+                .filter(t => t.type === 'income')
+                .reduce((sum, t) => sum + t.amount, 0);
+            
+            const totalExpense = transactions
+                .filter(t => t.type === 'expense')
+                .reduce((sum, t) => sum + t.amount, 0);
+            
+            const balance = totalIncome - totalExpense;
+            
+            totalIncomeElement.textContent = `${totalIncome.toFixed(2)} CHF`;
+            totalExpenseElement.textContent = `${totalExpense.toFixed(2)} CHF`;
+            balanceElement.textContent = `${balance.toFixed(2)} CHF`;
+            
+            // Saldo-Farbe basierend auf Wert anpassen
+            if (balance >= 0) {
+                balanceContainer.className = 'p-4 rounded-lg shadow-sm bg-yellow-100 dark:bg-gray-700 text-green-700 dark:text-green-300';
+            } else {
+                balanceContainer.className = 'p-4 rounded-lg shadow-sm bg-yellow-100 dark:bg-gray-700 text-yellow-600 dark:text-yellow-300';
+            }
+        }
+
+        async function addTransaction() {
+            const amount = parseFloat(amountInput.value);
+            const description = descriptionInput.value.trim();
+            const type = typeSelect.value;
+            const categoryId = categorySelect.value;
+            
+            if (isNaN(amount) || amount <= 0) {
+                showError('dashboard', 'Bitte einen gültigen Betrag eingeben.');
+                return;
+            }
+            
+            if (!description) {
+                showError('dashboard', 'Bitte eine Beschreibung eingeben.');
+                return;
+            }
+            
+            if (!categoryId) {
+                showError('dashboard', 'Bitte eine Kategorie auswählen.');
+                return;
+            }
+
+            try {
+                await db.collection(`artifacts/${appId}/users/${userId}/transactions`).add({
+                    amount,
+                    description,
+                    type,
+                    categoryId,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    userId
+                });
+                
+                // Formular zurücksetzen
+                amountInput.value = '';
+                descriptionInput.value = '';
+            } catch (error) {
+                console.error("Fehler beim Hinzufügen der Transaktion:", error);
+                showError('dashboard', "Fehler beim Hinzufügen der Transaktion.");
+            }
+        }
+
+        function showResetConfirmation() {
+            resetConfirmationModal.classList.remove('hidden');
+        }
+
+        function hideResetConfirmation() {
+            resetConfirmationModal.classList.add('hidden');
+        }
+
+        async function resetDashboard() {
+            try {
+                const transactions = await db.collection(`artifacts/${appId}/users/${userId}/transactions`).get();
+                const batch = db.batch();
+                
+                transactions.forEach(doc => {
+                    batch.delete(doc.ref);
+                });
+                
+                await batch.commit();
+                hideResetConfirmation();
+            } catch (error) {
+                console.error("Fehler beim Zurücksetzen des Dashboards:", error);
+                showError('dashboard', "Fehler beim Zurücksetzen des Dashboards.");
+                hideResetConfirmation();
+            }
+        }
+
+        function updateRecurringDayVisibility() {
+            if (recurringTypeSelect.value === 'income' && frequencySelect.value === 'monthly') {
+                recurringDayContainer.classList.remove('hidden');
+            } else {
+                recurringDayContainer.classList.add('hidden');
+            }
+        }
+
+        async function loadRecurringTransactions() {
+            if (!userId) return;
+
+            const recurringCollection = db.collection(`artifacts/${appId}/users/${userId}/recurringTransactions`);
+            
+            recurringCollection.orderBy('createdAt').onSnapshot(snapshot => {
+                const recurringTransactions = [];
+                snapshot.forEach(doc => {
+                    recurringTransactions.push({
+                        id: doc.id,
+                        ...doc.data()
+                    });
+                });
+
+                renderRecurringTransactionsList(recurringTransactions);
+            }, error => {
+                console.error("Fehler beim Laden der wiederkehrenden Transaktionen:", error);
+                showError('settings', "Fehler beim Laden der wiederkehrenden Transaktionen.");
+            });
+        }
+
+        function renderRecurringTransactionsList(recurringTransactions) {
+            if (recurringTransactions.length === 0) {
+                recurringTransactionsList.innerHTML = '<p class="italic text-gray-600 dark:text-gray-400">Noch keine wiederkehrenden Transaktionen vorhanden.</p>';
+                return;
+            }
+
+            recurringTransactionsList.innerHTML = '';
+            recurringTransactions.forEach(transaction => {
+                const li = document.createElement('li');
+                li.className = 'flex items-center justify-between p-4 rounded-md shadow-sm border bg-yellow-100 dark:bg-gray-600 border-green-600 dark:border-gray-500';
+                
+                const div = document.createElement('div');
+                
+                const nameSpan = document.createElement('span');
+                nameSpan.className = `text-lg font-medium ${transaction.type === 'income' ? 'text-green-700 dark:text-green-300' : 'text-red-600 dark:text-red-300'}`;
+                nameSpan.textContent = `${transaction.name}: ${transaction.type === 'income' ? '+' : '-'} ${transaction.amount.toFixed(2)} CHF`;
+                
+                const detailsP = document.createElement('p');
+                detailsP.className = 'text-xs text-gray-700 dark:text-gray-300';
+                
+                // Kategoriename anzeigen (wenn Kategorien geladen sind)
+                const categoryName = document.querySelector(`#recurring-category option[value="${transaction.categoryId}"]`)?.textContent || transaction.categoryId;
+                let detailsText = `Kategorie: ${categoryName} | Häufigkeit: `;
+                
+                switch (transaction.frequency) {
+                    case 'monthly':
+                        detailsText += 'Monatlich';
+                        if (transaction.recurringDay) {
+                            detailsText += ` | Zahltag: Tag ${transaction.recurringDay} des Monats`;
+                        }
+                        break;
+                    case 'weekly':
+                        detailsText += 'Wöchentlich';
+                        break;
+                    case 'yearly':
+                        detailsText += 'Jährlich';
+                        break;
+                    default:
+                        detailsText += 'Unbekannt';
+                }
+                
+                detailsP.textContent = detailsText;
+                
+                div.appendChild(nameSpan);
+                div.appendChild(detailsP);
+                li.appendChild(div);
+                
+                const button = document.createElement('button');
+                button.className = 'bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg text-sm focus:outline-none focus:shadow-outline transition-all duration-200 transform hover:scale-105';
+                button.textContent = 'Löschen';
+                button.addEventListener('click', () => deleteRecurringTransaction(transaction.id));
+                
+                li.appendChild(button);
+                recurringTransactionsList.appendChild(li);
+            });
+        }
+
+        async function addRecurringTransaction() {
+            const name = recurringNameInput.value.trim();
+            const amount = parseFloat(recurringAmountInput.value);
+            const type = recurringTypeSelect.value;
+            const categoryId = recurringCategorySelect.value;
+            const frequency = frequencySelect.value;
+            const recurringDay = recurringDayInput.value ? parseInt(recurringDayInput.value) : null;
+            
+            if (!name) {
+                showError('settings', 'Bitte einen Namen für die wiederkehrende Transaktion eingeben.');
+                return;
+            }
+            
+            if (isNaN(amount) || amount <= 0) {
+                showError('settings', 'Bitte einen gültigen Betrag eingeben.');
+                return;
+            }
+            
+            if (!categoryId) {
+                showError('settings', 'Bitte eine Kategorie auswählen.');
+                return;
+            }
+            
+            if (type === 'income' && frequency === 'monthly' && (!recurringDay || recurringDay < 1 || recurringDay > 31)) {
+                showError('settings', 'Bitte einen gültigen Tag (1-31) für monatliche wiederkehrende Einnahmen angeben.');
+                return;
+            }
+
+            try {
+                await db.collection(`artifacts/${appId}/users/${userId}/recurringTransactions`).add({
+                    name,
+                    amount,
+                    type,
+                    categoryId,
+                    frequency,
+                    recurringDay: type === 'income' && frequency === 'monthly' ? recurringDay : null,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    userId
+                });
+                
+                // Formular zurücksetzen
+                recurringNameInput.value = '';
+                recurringAmountInput.value = '';
+                recurringDayInput.value = '';
+            } catch (error) {
+                console.error("Fehler beim Hinzufügen der wiederkehrenden Transaktion:", error);
+                showError('settings', "Fehler beim Hinzufügen der wiederkehrenden Transaktion.");
+            }
+        }
+
+        async function deleteRecurringTransaction(transactionId) {
+            try {
+                await db.doc(`artifacts/${appId}/users/${userId}/recurringTransactions/${transactionId}`).delete();
+            } catch (error) {
+                console.error("Fehler beim Löschen der wiederkehrenden Transaktion:", error);
+                showError('settings', "Fehler beim Löschen der wiederkehrenden Transaktion.");
+            }
+        }
+
+        async function loadBudgetLimits() {
+            if (!userId) return;
+
+            const limitsCollection = db.collection(`artifacts/${appId}/users/${userId}/budgetLimits`);
+            
+            limitsCollection.onSnapshot(snapshot => {
+                const limits = [];
+                snapshot.forEach(doc => {
+                    limits.push({
+                        id: doc.id,
+                        ...doc.data()
+                    });
+                });
+
+                renderBudgetLimitsList(limits);
+            }, error => {
+                console.error("Fehler beim Laden der Budgetgrenzen:", error);
+                showError('limits', "Fehler beim Laden der Budgetgrenzen.");
+            });
+        }
+
+        function renderBudgetLimitsList(limits) {
+            if (limits.length === 0) {
+                budgetLimitsList.innerHTML = '<p class="italic text-gray-600 dark:text-gray-400">Noch keine Budgetgrenzen festgelegt.</p>';
+                return;
+            }
+
+            budgetLimitsList.innerHTML = '';
+            limits.forEach(limit => {
+                const li = document.createElement('li');
+                li.className = 'flex items-center justify-between p-4 rounded-md shadow-sm border bg-yellow-100 dark:bg-gray-600 border-green-600 dark:border-gray-500';
+                
+                const div = document.createElement('div');
+                
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'text-lg font-medium dark:text-white';
+                // Kategoriename anzeigen (wenn Kategorien geladen sind)
+                const categoryName = document.querySelector(`#limit-category option[value="${limit.categoryId}"]`)?.textContent || limit.categoryId;
+                nameSpan.textContent = categoryName;
+                
+                const amountP = document.createElement('p');
+                amountP.className = 'text-gray-700 dark:text-gray-300 text-sm';
+                amountP.textContent = `Grenze: ${limit.amount.toFixed(2)} CHF`;
+                
+                div.appendChild(nameSpan);
+                div.appendChild(amountP);
+                li.appendChild(div);
+                
+                const button = document.createElement('button');
+                button.className = 'bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg text-sm focus:outline-none focus:shadow-outline transition-all duration-200 transform hover:scale-105';
+                button.textContent = 'Löschen';
+                button.addEventListener('click', () => deleteBudgetLimit(limit.id));
+                
+                li.appendChild(button);
+                budgetLimitsList.appendChild(li);
+            });
+        }
+
+        async function setBudgetLimit() {
+            const categoryId = limitCategorySelect.value;
+            const amount = parseFloat(limitAmountInput.value);
+            
+            if (!categoryId) {
+                showError('limits', 'Bitte eine Kategorie auswählen.');
+                return;
+            }
+            
+            if (isNaN(amount) || amount <= 0) {
+                showError('limits', 'Bitte einen gültigen Betrag für die Grenze eingeben.');
+                return;
+            }
+
+            try {
+                // Prüfen, ob für diese Kategorie bereits eine Grenze existiert
+                const existingLimitQuery = await db.collection(`artifacts/${appId}/users/${userId}/budgetLimits`)
+                    .where('categoryId', '==', categoryId)
+                    .get();
+                
+                if (existingLimitQuery.empty) {
+                    // Neue Grenze hinzufügen
+                    await db.collection(`artifacts/${appId}/users/${userId}/budgetLimits`).add({
+                        categoryId,
+                        amount,
+                        userId,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                } else {
+                    // Bestehende Grenze aktualisieren
+                    const existingLimit = existingLimitQuery.docs[0];
+                    await db.doc(`artifacts/${appId}/users/${userId}/budgetLimits/${existingLimit.id}`).update({
+                        amount,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                }
+                
+                // Formular zurücksetzen
+                limitAmountInput.value = '';
+            } catch (error) {
+                console.error("Fehler beim Setzen der Budgetgrenze:", error);
+                showError('limits', "Fehler beim Setzen der Budgetgrenze.");
+            }
+        }
+
+        async function deleteBudgetLimit(limitId) {
+            try {
+                await db.doc(`artifacts/${appId}/users/${userId}/budgetLimits/${limitId}`).delete();
+            } catch (error) {
+                console.error("Fehler beim Löschen der Budgetgrenze:", error);
+                showError('limits', "Fehler beim Löschen der Budgetgrenze.");
+            }
+        }
+
+        function toggleDarkMode() {
+            darkMode = !darkMode;
+            document.documentElement.classList.toggle('dark');
+            localStorage.setItem('darkMode', darkMode);
+            updateDarkModeButton();
+        }
+
+        function updateDarkModeButton() {
+            if (darkMode) {
+                darkModeBtn.className = 'fixed bottom-4 right-4 p-3 rounded-full shadow-lg transition-colors duration-300 bg-green-700 text-white hover:bg-blue-800 dark:bg-green-700 dark:hover:bg-blue-800';
+                darkModeIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h1M4 12H3m15.325 5.325l-.707.707M6.364 6.364l-.707-.707m12.728 0l-.707-.707M6.364 17.636l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />';
+            } else {
+                darkModeBtn.className = 'fixed bottom-4 right-4 p-3 rounded-full shadow-lg transition-colors duration-300 bg-blue-800 text-white hover:bg-green-700 dark:bg-blue-800 dark:hover:bg-green-700';
+                darkModeIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />';
+            }
+        }
+
+        // Initiale Seite anzeigen
+        showPage('auth');
+    </script>
+</body>
+</html>
